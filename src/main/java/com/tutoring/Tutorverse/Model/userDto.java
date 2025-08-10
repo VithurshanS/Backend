@@ -1,14 +1,13 @@
 package com.tutoring.Tutorverse.Model;
-
-
+import java.util.UUID;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "userss")
 public class userDto {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    private UUID id;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -26,7 +25,7 @@ public class userDto {
     @Column(name = "name")
     private String name;
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
@@ -50,7 +49,7 @@ public class userDto {
         return name;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

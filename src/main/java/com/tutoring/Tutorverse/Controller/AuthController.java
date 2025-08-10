@@ -51,7 +51,7 @@ public class AuthController {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
         user.setProviderid(null); // unused for local users
-        user.setRole(roleDto.STUDENT); // set a default role instead of null
+        user.setRole(roleDto.TUTOR); // set a default role instead of null
         user.setName(body.get("name")); // get name from request body if provided
 
         userRepo.save(user);
@@ -65,7 +65,7 @@ public class AuthController {
 
         Optional<userDto> userOpt = userRepo.findByEmail(email);
         if (userOpt.isEmpty() || userOpt.get().getPassword() == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No credentials");
         }
 
         userDto user = userOpt.get();

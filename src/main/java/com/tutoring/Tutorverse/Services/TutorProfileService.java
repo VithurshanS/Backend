@@ -1,0 +1,89 @@
+
+package com.tutoring.Tutorverse.Services;
+
+import org.springframework.stereotype.Service;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.tutoring.Tutorverse.Dto.TutorProfileDto;
+import com.tutoring.Tutorverse.Model.TutorEntity;
+import com.tutoring.Tutorverse.Model.userDto;
+import com.tutoring.Tutorverse.Repository.TutorProfileRepository;
+import com.tutoring.Tutorverse.Repository.userRepository;
+
+
+@Service
+public class TutorProfileService {
+
+    @Autowired
+    private TutorProfileRepository tutorRepository;
+
+    @Autowired
+	private userRepository userRepository;
+
+
+   private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+
+    public TutorEntity createTutorProfile(TutorProfileDto dto) {
+
+        userDto user = userRepository.findById(dto.getTutorId())
+			.orElseThrow(() -> new RuntimeException("User not found with id: " + dto.getTutorId()));
+
+        TutorEntity tutor = TutorEntity.builder()
+                .user(user)
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .phoneNo(dto.getPhoneNo())
+                .gender(dto.getGender())
+                .dob(dto.getDob())
+                .portfolio(dto.getPortfolio())
+                .bio(dto.getBio())
+                .image(dto.getImage())
+                .build();
+        return tutorRepository.save(tutor);
+    }
+
+
+    public TutorEntity getTutorProfile(UUID tutorId) {
+        return tutorRepository.findById(tutorId)
+                .orElseThrow(() -> new RuntimeException("Tutor profile not found"));
+    }
+
+
+    public TutorEntity updateTutorProfile(UUID tutorId, TutorProfileDto dto) {
+        TutorEntity existingProfile = getTutorProfile(tutorId);
+        existingProfile.setFirstName(dto.getFirstName());
+        existingProfile.setLastName(dto.getLastName());
+        existingProfile.setPhoneNo(dto.getPhoneNo());
+        existingProfile.setGender(dto.getGender());
+        existingProfile.setDob(dto.getDob());
+        existingProfile.setPortfolio(dto.getPortfolio());
+        existingProfile.setBio(dto.getBio());
+        existingProfile.setImage(dto.getImage());
+        return tutorRepository.save(existingProfile);
+    }
+
+
+    public void deleteTutorProfile(UUID tutorId) {
+        TutorEntity existingProfile = getTutorProfile(tutorId);
+        if(existingProfile == null){
+            throw new RuntimeException("Tutor profile not found");
+        }
+        tutorRepository.delete(existingProfile);
+    }
+
+    public void changePassword(UUID id, String newPassword) {
+        userDto user = userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        // Optional: Check if the new password is the same as the old one
+        if (!passwordEncoder.matches(newPassword, user.getPassword())) {
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+        }
+    }
+
+
+}    

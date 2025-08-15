@@ -26,7 +26,7 @@ public class UserService {
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     public Optional<User> addUser(UserCreateDto request){
         if(userRepo.existsByEmail(request.getEmail())) {
-            return Optional.empty();
+            return userRepo.findByEmail(request.getEmail());
         }
         User newuser = new User();
         newuser.setEmail(request.getEmail());

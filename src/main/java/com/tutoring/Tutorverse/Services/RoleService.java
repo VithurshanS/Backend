@@ -58,13 +58,13 @@ public class RoleService {
         if (role != null) {
             return role;
         }
-
+        
         // If role doesn't exist, try to get default role
         Role defaultRole = getDefaultRole();
         if (defaultRole != null) {
             return defaultRole;
         }
-
+        
         // If even default role doesn't exist, create and return STUDENT role
         Role studentRole = new Role("STUDENT");
         return roleRepository.save(studentRole);

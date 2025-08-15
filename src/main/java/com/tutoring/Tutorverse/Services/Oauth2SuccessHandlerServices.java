@@ -61,7 +61,7 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
             System.out.println("Creating UserCreateDto.googleUser...");
 
             Optional<User> newUser = userService.addUser(UserCreateDto.googleUser(email,role,providerdId,name));
-
+            
             System.out.println("UserService.addUser result: " + (newUser.isPresent() ? "SUCCESS" : "FAILED"));
             if (newUser.isPresent()) {
                 System.out.println("Created/Retrieved User ID: " + newUser.get().getId());
@@ -69,7 +69,7 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
                 System.out.println("User Role: " + newUser.get().getRole().getName());
             }
             System.out.println("================================");
-
+            
             // Ensure we have a valid user
             if (newUser.isEmpty()) {
                 throw new RuntimeException("Failed to create or retrieve user");

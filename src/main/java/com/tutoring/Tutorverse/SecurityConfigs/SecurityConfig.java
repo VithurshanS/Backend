@@ -2,6 +2,8 @@ package com.tutoring.Tutorverse.SecurityConfigs;
 
 
 import com.tutoring.Tutorverse.Repository.userRepository;
+import com.tutoring.Tutorverse.Services.CustomOAuth2RequestServices;
+import com.tutoring.Tutorverse.Services.Oauth2SuccessHandlerServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,45 +11,54 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-//    @Autowired
-//    private CustomOAuth2UserService customOAuth2UserService;
-
-//    @Autowired
-//    private CustomOidcUserService customOidcUserService;
 
     @Autowired
     private userRepository userRepo;
+    @Autowired
+    private CustomOAuth2RequestServices customOAuth2RequestServices;
+    @Autowired
+    private Oauth2SuccessHandlerServices oAuth2AuthenticationSuccessHandler;
+
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for API endpoints
+                .cors(cors -> cors.configurationSource(request -> {
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "http://localhost:3000"));
+                    config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+                    config.setAllowedHeaders(Arrays.asList("*"));
+                    config.setAllowCredentials(true);
+                    config.setExposedHeaders(Arrays.asList("Authorization", "Set-Cookie"));
+                    config.setMaxAge(3600L);
+                    return config;
+                }))
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/css/**", "/js/**").permitAll()
+                        .requestMatchers("/css/**", "/js/**","/").permitAll()
                         .requestMatchers("/api/**").permitAll() // allow all API endpoints without authentication
                         .requestMatchers("/login", "/oauth2/**", "/error").permitAll() // allow OAuth2 endpoints and error page
+                        .requestMatchers("/home/**").permitAll() // allow home endpoints for OAuth2 callback
                         .anyRequest().authenticated()
                 )
-//                .oauth2Login(oauth2 -> oauth2
-//                        .defaultSuccessUrl("/home", true)
-//                        .authorizationEndpoint(authorization -> authorization
-//                                .authorizationRequestResolver(customAuthorizationRequestResolver(clientRegistrationRepository))
-//                        )
-//                        .userInfoEndpoint(userInfo -> {
-//                            userInfo.userService(customOAuth2UserService);
-//                            userInfo.oidcUserService(customOidcUserService);
-//                        })
-//                )
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(authorization -> authorization
+                                .authorizationRequestRepository(customOAuth2RequestServices)
+                        )
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                )
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()

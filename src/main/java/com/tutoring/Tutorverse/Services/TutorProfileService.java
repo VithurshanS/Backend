@@ -1,12 +1,14 @@
-
 package com.tutoring.Tutorverse.Services;
 
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import com.tutoring.Tutorverse.Dto.TutorProfileDto;
 import com.tutoring.Tutorverse.Model.TutorEntity;
 import com.tutoring.Tutorverse.Model.userDto;
@@ -22,9 +24,7 @@ public class TutorProfileService {
 
     @Autowired
 	private userRepository userRepository;
-
-
-   private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 
     public TutorEntity createTutorProfile(TutorProfileDto dto) {
@@ -83,6 +83,26 @@ public class TutorProfileService {
             user.setPassword(passwordEncoder.encode(newPassword));
             userRepository.save(user);
         }
+    }
+
+    public TutorProfileDto convertToDto(TutorEntity tutor) {
+        return TutorProfileDto.builder()
+                .tutorId(tutor.getTutorId())
+                .firstName(tutor.getFirstName())
+                .lastName(tutor.getLastName())
+                .phoneNo(tutor.getPhoneNo())
+                .gender(tutor.getGender())
+                .dob(tutor.getDob())
+                .portfolio(tutor.getPortfolio())
+                .bio(tutor.getBio())
+                .image(tutor.getImage())
+                .build();
+    }
+
+    public List<TutorProfileDto> searchTutorProfiles(String query) {
+        return tutorRepository.findByFirstNameContainingIgnoreCase(query).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
 

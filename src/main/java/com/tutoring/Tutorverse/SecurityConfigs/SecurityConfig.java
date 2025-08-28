@@ -36,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/css/**", "/js/**").permitAll()
                         .requestMatchers("/api/**").permitAll() // allow all API endpoints without authentication
                         .requestMatchers("/login", "/oauth2/**", "/error").permitAll() // allow OAuth2 endpoints and error page
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll() // allow OpenAPI/Swagger UI
                         .anyRequest().authenticated()
                 )
 //                .oauth2Login(oauth2 -> oauth2

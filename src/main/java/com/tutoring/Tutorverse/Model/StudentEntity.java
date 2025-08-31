@@ -22,7 +22,7 @@ public class StudentEntity {
     @OneToOne
     @MapsId
     @JoinColumn(name = "student_id") 
-    private userDto user;
+    private User user;
 
     @Column(name = "name", nullable = false)
     private String name;

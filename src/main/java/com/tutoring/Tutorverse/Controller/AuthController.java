@@ -1,8 +1,8 @@
 package com.tutoring.Tutorverse.Controller;
 
 
-import com.tutoring.Tutorverse.DTO.UserCreateDto;
-import com.tutoring.Tutorverse.DTO.UserGetDto;
+import com.tutoring.Tutorverse.Dto.UserCreateDto;
+import com.tutoring.Tutorverse.Dto.UserGetDto;
 import com.tutoring.Tutorverse.Model.Role;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.userRepository;

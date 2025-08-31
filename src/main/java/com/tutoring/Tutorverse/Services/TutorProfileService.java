@@ -11,7 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.tutoring.Tutorverse.Dto.TutorProfileDto;
 import com.tutoring.Tutorverse.Model.TutorEntity;
-import com.tutoring.Tutorverse.Model.userDto;
+import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.TutorProfileRepository;
 import com.tutoring.Tutorverse.Repository.userRepository;
 
@@ -29,7 +29,7 @@ public class TutorProfileService {
 
     public TutorEntity createTutorProfile(TutorProfileDto dto) {
 
-        userDto user = userRepository.findById(dto.getTutorId())
+        User user = userRepository.findById(dto.getTutorId())
 			.orElseThrow(() -> new RuntimeException("User not found with id: " + dto.getTutorId()));
 
         TutorEntity tutor = TutorEntity.builder()
@@ -76,7 +76,7 @@ public class TutorProfileService {
     }
 
     public void changePassword(UUID id, String newPassword) {
-        userDto user = userRepository.findById(id)
+        User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         // Optional: Check if the new password is the same as the old one
         if (!passwordEncoder.matches(newPassword, user.getPassword())) {

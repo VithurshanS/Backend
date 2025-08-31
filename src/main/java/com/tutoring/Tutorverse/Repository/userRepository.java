@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface userRepository extends CrudRepository<User,Long> {
+public interface userRepository extends CrudRepository<User,UUID> {
     Optional<User> findByEmail(String email);
     Optional<User> findByProviderid(String providerid);
     boolean existsByEmail(String email);

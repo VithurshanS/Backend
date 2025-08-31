@@ -3,9 +3,9 @@ package com.tutoring.Tutorverse.Services;
 
 import com.tutoring.Tutorverse.Dto.StudentProfileDto;
 import com.tutoring.Tutorverse.Model.StudentEntity;
+import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.StudentProfileRepository;
 import com.tutoring.Tutorverse.Repository.userRepository;
-import com.tutoring.Tutorverse.Model.userDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,7 +29,7 @@ public class StudentProfileService {
 
 	public StudentEntity createStudentProfile(StudentProfileDto dto) {
 		// Fetch the user by ID
-		userDto user = userRepository.findById(dto.getStudentId())
+		User user = userRepository.findById(dto.getStudentId())
 			.orElseThrow(() -> new RuntimeException("User not found with id: " + dto.getStudentId()));
 
 		StudentEntity student = StudentEntity.builder()
@@ -66,7 +66,7 @@ public class StudentProfileService {
 
 
 	public void changePassword(UUID id, String newPassword) {
-		userDto user = userRepository.findById(id)
+		User user = userRepository.findById(id)
 			.orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 		if (user != null && newPassword != user.getPassword()) {
 			user.setPassword(passwordEncoder.encode(newPassword));

@@ -1,7 +1,7 @@
 package com.tutoring.Tutorverse.Services;
 
 
-import com.tutoring.Tutorverse.DTO.UserCreateDto;
+import com.tutoring.Tutorverse.Dto.UserCreateDto;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.RoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,17 +1,19 @@
 package com.tutoring.Tutorverse.Model;
-import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "userss")
-public class userDto {
+@Table(name = "usersss")
+public class User {
     @Id
-    @GeneratedValue
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private roleDto role;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", nullable = false)
+    @JsonManagedReference
+    private Role role;
 
     @Column(unique = true,name = "email")
     private String email;
@@ -24,12 +26,15 @@ public class userDto {
 
     @Column(name = "name")
     private String name;
+    
+    @Column(name = "is_email_verified", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean is_email_verified = false; // Java field default
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public roleDto getRole() {
+    public Role getRole() {
         return role;
     }
 
@@ -49,11 +54,15 @@ public class userDto {
         return name;
     }
 
-    public void setId(UUID id) {
+    public boolean isEmailVerified() {
+        return is_email_verified;
+    }
+
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public void setRole(roleDto role) {
+    public void setRole(Role role) {
         this.role = role;
     }
 
@@ -71,5 +80,9 @@ public class userDto {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.is_email_verified = emailVerified;
     }
 }

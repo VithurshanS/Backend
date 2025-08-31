@@ -1,4 +1,5 @@
 package com.tutoring.Tutorverse.Model;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -7,8 +8,8 @@ import jakarta.persistence.*;
 @Table(name = "usersss")
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
@@ -30,7 +31,7 @@ public class User {
     @Column(name = "is_email_verified", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean is_email_verified = false; // Java field default
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
@@ -58,7 +59,7 @@ public class User {
         return is_email_verified;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

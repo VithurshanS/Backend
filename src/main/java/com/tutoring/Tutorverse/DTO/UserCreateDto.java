@@ -1,4 +1,4 @@
-package com.tutoring.Tutorverse.DTO;
+package com.tutoring.Tutorverse.Dto;
 
 public class UserCreateDto {
     private String email;

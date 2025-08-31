@@ -1,4 +1,4 @@
-package com.tutoring.Tutorverse.DTO;
+package com.tutoring.Tutorverse.Dto;
 
 import com.tutoring.Tutorverse.Model.User;
 

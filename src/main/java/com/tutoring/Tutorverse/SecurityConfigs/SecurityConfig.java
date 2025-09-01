@@ -48,6 +48,8 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**","/").permitAll()
+                        // Swagger / OpenAPI docs
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/**").permitAll() // allow all API endpoints without authentication
                         .requestMatchers("/login", "/oauth2/**", "/error").permitAll() // allow OAuth2 endpoints and error page
                         .requestMatchers("/home/**").permitAll() // allow home endpoints for OAuth2 callback

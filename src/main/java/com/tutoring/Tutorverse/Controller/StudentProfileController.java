@@ -3,6 +3,7 @@ package com.tutoring.Tutorverse.Controller;
 import com.tutoring.Tutorverse.Dto.StudentProfileDto;
 import com.tutoring.Tutorverse.Model.StudentEntity;
 import com.tutoring.Tutorverse.Services.StudentProfileService;
+import com.tutoring.Tutorverse.Services.JwtServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
@@ -20,35 +21,91 @@ public class StudentProfileController {
 	@Autowired
 	private StudentProfileService studentProfileService;
 
+	@Autowired
+	private JwtServices jwtServices;
+
 	@PostMapping
-	public ResponseEntity<StudentEntity> createStudentProfile(@RequestBody StudentProfileDto dto) {
-		StudentEntity createdStudent = studentProfileService.createStudentProfile(dto);
-		return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
+	public ResponseEntity<?> createStudentProfile(@RequestBody StudentProfileDto dto,
+												  @RequestHeader(value = "Authorization", required = false) String authHeader) {
+		try {
+			if (authHeader == null || authHeader.isBlank()) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			}
+			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+			UUID userId = jwtServices.getUserIdFromJwtToken(token);
+			dto.setStudentId(userId); // override any provided id
+			StudentEntity createdStudent = studentProfileService.createStudentProfile(dto);
+			return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token: " + e.getMessage());
+		}
 	}
 
 
-	@GetMapping("/{id}")
-	public ResponseEntity<StudentEntity> getStudentProfile(@PathVariable UUID id) {
-		StudentEntity student = studentProfileService.getStudentProfile(id);
-		return ResponseEntity.ok(student);
+	@GetMapping("/me")
+	public ResponseEntity<?> getStudentProfile(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+		try {
+			if (authHeader == null || authHeader.isBlank()) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			}
+			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+			UUID userId = jwtServices.getUserIdFromJwtToken(token);
+			StudentEntity student = studentProfileService.getStudentProfile(userId);
+			return ResponseEntity.ok(student);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token: " + e.getMessage());
+		}
 	}
 
-	@PutMapping("/{id}")
-	public ResponseEntity<StudentEntity> updateStudentProfile(@PathVariable UUID id, @RequestBody StudentProfileDto dto) {
-		StudentEntity updatedStudent = studentProfileService.updateStudentProfile(id, dto);
-		return ResponseEntity.ok(updatedStudent);
+	@PutMapping
+	public ResponseEntity<?> updateStudentProfile(@RequestBody StudentProfileDto dto,
+												  @RequestHeader(value = "Authorization", required = false) String authHeader) {
+		try {
+			if (authHeader == null || authHeader.isBlank()) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			}
+			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+			UUID userId = jwtServices.getUserIdFromJwtToken(token);
+			dto.setStudentId(userId);
+			StudentEntity updatedStudent = studentProfileService.updateStudentProfile(userId, dto);
+			return ResponseEntity.ok(updatedStudent);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token: " + e.getMessage());
+		}
 	}
 
-	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> deleteStudentProfile(@PathVariable UUID id) {
-		studentProfileService.deleteStudentProfile(id);
-		return ResponseEntity.noContent().build();
+	@DeleteMapping
+	public ResponseEntity<?> deleteStudentProfile(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+		try {
+			if (authHeader == null || authHeader.isBlank()) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			}
+			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+			UUID userId = jwtServices.getUserIdFromJwtToken(token);
+			studentProfileService.deleteStudentProfile(userId);
+			return ResponseEntity.noContent().build();
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token: " + e.getMessage());
+		}
 	}
 
-   @PutMapping("/change-password/{id}")
-    public ResponseEntity<Void> changePassword(@PathVariable UUID id, @RequestBody Map<String, String> body) {
-        String newPassword = body.get("newPassword");
-        studentProfileService.changePassword(id, newPassword);
-        return ResponseEntity.ok().build();
-    }
+	@PutMapping("/change-password")
+	 public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body,
+														  @RequestHeader(value = "Authorization", required = false) String authHeader) {
+		try {
+			if (authHeader == null || authHeader.isBlank()) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			}
+			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+			UUID userId = jwtServices.getUserIdFromJwtToken(token);
+			String newPassword = body.get("newPassword");
+			if (newPassword == null || newPassword.isBlank()) {
+				return ResponseEntity.badRequest().body("newPassword is required");
+			}
+				studentProfileService.changePassword(userId, newPassword);
+			return ResponseEntity.ok().build();
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token: " + e.getMessage());
+		}
+	}
 }

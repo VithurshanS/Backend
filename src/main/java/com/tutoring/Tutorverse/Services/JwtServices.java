@@ -11,6 +11,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class JwtServices {
@@ -49,5 +50,18 @@ public class JwtServices {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+    public UUID getUserIdFromJwtToken(String token) {
+        Object val = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("userId");
+        if (val == null) {
+            throw new RuntimeException("userId claim missing");
+        }
+        return UUID.fromString(val.toString());
     }
 }

@@ -1,5 +1,7 @@
 package com.tutoring.Tutorverse.Controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +17,12 @@ public class DomainController {
 
     @Autowired
     private DomainService domainService;
+
+    @GetMapping("/all")
+    public ResponseEntity<List<DomainDto>> getAllDomains() {
+        List<DomainDto> domains = domainService.getAllDomains();
+        return ResponseEntity.ok(domains);
+    }
 
     @PostMapping("/create")
     public ResponseEntity<String> createDomain(@RequestBody DomainDto domainDto) {

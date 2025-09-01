@@ -8,5 +8,6 @@ import com.tutoring.Tutorverse.Model.ModuelsEntity;
 public interface ModulesRepository extends JpaRepository<ModuelsEntity, UUID> {
 
     Collection<ModuelsEntity> findByNameContainingIgnoreCase(String query);
+    Collection<ModuelsEntity> findByDomain_DomainId(Integer domainId);
 
 }

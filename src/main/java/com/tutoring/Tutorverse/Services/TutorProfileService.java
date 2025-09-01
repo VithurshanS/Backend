@@ -106,4 +106,9 @@ public class TutorProfileService {
     }
 
 
+    public List<TutorEntity> getAllTutorProfiles() {
+        return tutorRepository.findAll();
+    }
+
+
 }    

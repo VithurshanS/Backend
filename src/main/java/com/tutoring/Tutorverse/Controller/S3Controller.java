@@ -29,21 +29,47 @@ public class S3Controller {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<MaterialDto> uploadFile(@RequestParam("module_id") UUID module_id, @RequestParam("title") String title, @RequestParam("description") String description, @RequestParam("type") String type, @RequestParam("file") MultipartFile file) {
+    public ResponseEntity<MaterialDto> uploadFile(
+            @RequestParam("module_id") UUID module_id,
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("type") String type,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "link", required = false) String link) {
+
         try {
+
+            String fileUrl = null;
+
+            if ("Document".equalsIgnoreCase(type) ) {
+                if (file == null || file.isEmpty()) {
+                    return ResponseEntity.badRequest().build();
+                }
+
             // Save the file temporarily
             File tempFile = File.createTempFile("upload-", file.getOriginalFilename());
             file.transferTo(tempFile);
             // Upload and get the URL
-            String fileUrl = s3Service.uploadFile(tempFile.getAbsolutePath(), file.getOriginalFilename());
+            fileUrl = s3Service.uploadFile(tempFile.getAbsolutePath(), file.getOriginalFilename());
             // Save material to database
+            }
+
+            else if ("Link".equalsIgnoreCase(type)) {
+                if (link == null || link.isEmpty()) {
+                    return ResponseEntity.badRequest().build();
+                }
+
+                fileUrl = link;
+            }
+
             MaterialDto material = materialService.saveToDatabase(module_id, title, description, type, fileUrl);
             return ResponseEntity.ok(material);
+
         }
 
         catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body((MaterialDto) List.of());
+            return ResponseEntity.status(500).body(null);
         }
     }
 

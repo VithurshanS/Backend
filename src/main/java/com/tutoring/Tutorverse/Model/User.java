@@ -1,11 +1,12 @@
 package com.tutoring.Tutorverse.Model;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "usersss")
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue
@@ -16,20 +17,37 @@ public class User {
     @JsonManagedReference
     private Role role;
 
-    @Column(unique = true,name = "email")
+    @Column(unique = true, name = "email", nullable = false)
     private String email;
 
     @Column(unique = true)
     private String providerid;
 
-    @Column(name = "password",nullable = true)
+    @Column(name = "password", nullable = true)
     private String password;
 
     @Column(name = "name")
     private String name;
     
     @Column(name = "is_email_verified", columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private boolean is_email_verified = false; // Java field default
+    private boolean is_email_verified = false;
+
+    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     public UUID getId() {
         return id;
@@ -85,5 +103,21 @@ public class User {
 
     public void setEmailVerified(boolean emailVerified) {
         this.is_email_verified = emailVerified;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

@@ -1,6 +1,7 @@
 package com.tutoring.Tutorverse.Model;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.*;
 import jakarta.persistence.*;
@@ -43,14 +44,31 @@ public class TutorEntity {
     @Column(name = "last_accessed", nullable = true)
     private LocalDate lastAccessed;
 
-    @Column(name = "image", nullable = true)
+    @Column(name = "image", nullable = true, columnDefinition = "TEXT")
     private String image;
 
-    @Column(name = "portfolio")
+    @Column(name = "portfolio", columnDefinition = "TEXT")
     private String portfolio;
 
-    @Column(name = "bio", nullable = true)
+    @Column(name = "bio", nullable = true, columnDefinition = "TEXT")
     private String bio;
+
+    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     public enum Gender {
         MALE, FEMALE, OTHER

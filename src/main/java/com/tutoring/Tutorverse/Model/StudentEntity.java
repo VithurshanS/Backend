@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -30,7 +31,7 @@ public class StudentEntity {
     @Column(name = "birthday")
     private LocalDate birthday;
 
-    @Column(name = "imageUrl", nullable = true)
+    @Column(name = "image_url", nullable = true)
     private String imageUrl;
 
     @Column(name = "last_accessed", nullable = true)
@@ -42,7 +43,23 @@ public class StudentEntity {
     @Column(name = "phone_number", nullable = true)
     private String phoneNumber;
 
-    @Column(name = "bio", nullable = true)
+    @Column(name = "bio", nullable = true, columnDefinition = "TEXT")
     private String bio;
 
+    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

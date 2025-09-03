@@ -7,6 +7,7 @@ import com.tutoring.Tutorverse.Services.Oauth2SuccessHandlerServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -23,10 +24,13 @@ public class SecurityConfig {
 
 
     @Autowired
+    @Lazy
     private userRepository userRepo;
     @Autowired
+    @Lazy
     private CustomOAuth2RequestServices customOAuth2RequestServices;
     @Autowired
+    @Lazy
     private Oauth2SuccessHandlerServices oAuth2AuthenticationSuccessHandler;
 
 

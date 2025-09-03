@@ -63,13 +63,19 @@ public class ModulesService {
             entity.setFee(moduelsDto.getFee());
             entity.setDuration(moduelsDto.getDuration());
 
-            // Domain: resolve by name if provided
+            // Domain: resolve by name if provided, create if not exists
             if (moduelsDto.getDomain() != null && !moduelsDto.getDomain().isBlank()) {
                 String domainName = moduelsDto.getDomain().trim();
                 DomainEntity domain = domainRepository.findAll().stream()
                         .filter(d -> d.getName().equalsIgnoreCase(domainName))
                         .findFirst()
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Domain not found: " + domainName));
+                        .orElseGet(() -> {
+                            // Create new domain if not found
+                            DomainEntity newDomain = DomainEntity.builder()
+                                    .name(domainName)
+                                    .build();
+                            return domainRepository.save(newDomain);
+                        });
                 entity.setDomain(domain);
             }
 

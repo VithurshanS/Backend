@@ -12,4 +12,6 @@ public interface ModulesRepository extends JpaRepository<ModuelsEntity, UUID> {
     Collection<ModuelsEntity> findByNameContainingIgnoreCase(String query);
     Collection<ModuelsEntity> findByDomain_DomainId(Integer domainId);
     Boolean existsByTutorIdAndModuleId(UUID tutorId, UUID moduleId);
+    Collection<ModuelsEntity> findByTutor_TutorId(UUID tutorId);
+
 }

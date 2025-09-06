@@ -131,6 +131,18 @@ public class ModulesService {
             return List.of();
         }
     }
+
+    public List<ModuelsDto> getModulesByTutorId(UUID id) {
+        try {
+            List<ModuelsDto> results = modulesRepository.findByTutor_TutorId(id).stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+            return results;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
 }
 
 //

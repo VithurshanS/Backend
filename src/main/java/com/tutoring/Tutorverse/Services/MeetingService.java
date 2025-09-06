@@ -2,6 +2,8 @@ package com.tutoring.Tutorverse.Services;
 
 import com.tutoring.Tutorverse.Dto.MeetingRequestDto;
 import com.tutoring.Tutorverse.Model.User;
+import com.tutoring.Tutorverse.Repository.EnrollRepository;
+import com.tutoring.Tutorverse.Repository.ModulesRepository;
 import com.tutoring.Tutorverse.Repository.ScheduleRepository;
 import com.tutoring.Tutorverse.Repository.userRepository;
 import io.jsonwebtoken.Jwts;
@@ -27,6 +29,12 @@ public class MeetingService {
     @Autowired
     private JwtServices jwtServices;
 
+    @Autowired
+    private EnrollRepository enrollRepository;
+
+    @Autowired
+    private ModulesRepository modulesRepository;
+
     // Jitsi configuration - you can move these to application.properties
     private final String JITSI_APP_ID = "mydeploy1";
     private final String JITSI_APP_SECRET = "wEoG/Y5keRbH4yrjMe7UxWiBzqO8a8VRqY8cVR4oXro=";
@@ -51,8 +59,20 @@ public class MeetingService {
 
             User user = userOpt.get();
             String roleName = user.getRole().getName();
+            if(isStudent(userId)){
+                if(!enrollRepository.existsByStudentStudentIdAndModuleModuleId(userId, details.getModuleId())){
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Student is not enrolled in the module");
+                }
+            }
+            if(isTutor(userId)){
+                if(!modulesRepository.existsByTutorIdAndModuleId(userId, details.getModuleId())){
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tutor does not own the module");
+                }
+            }
 
-            // Step 3: Get schedule using date, time, and selected module
+
+
+
             UUID scheduleId = scheduleRepository.findMatchingSchedule(
                 details.getRequestedDate(),
                 details.getRequestedTime(),
@@ -66,7 +86,7 @@ public class MeetingService {
 
             // Step 4: Generate token using function (tutor-moderator, student-guest)
             boolean isModerator = "TUTOR".equals(roleName);
-            String jitsiToken = generateJitsiToken(user, scheduleId.toString(), isModerator);
+            String jitsiToken = generateJitsiToken(user, scheduleId.toString(), isTutor(userId));
 
             // Step 5: Generate meeting link using token and schedule ID as room ID
             String meetingLink = generateMeetingLink(jitsiToken, scheduleId.toString());
@@ -78,7 +98,6 @@ public class MeetingService {
             response.put("scheduleId", scheduleId);
             response.put("roomId", scheduleId.toString());
             response.put("userRole", roleName);
-            response.put("isModerator", isModerator);
             response.put("token", jitsiToken);
             response.put("userDetails", Map.of(
                 "userId", userId,
@@ -111,6 +130,8 @@ public class MeetingService {
             userContext.put("name", user.getName() != null ? user.getName() : user.getEmail());
             userContext.put("email", user.getEmail());
             userContext.put("id", user.getId().toString());
+            userContext.put("affiliation", isModerator ? "owner" : "member");
+//            userContext.put("moderator", isModerator); // true for TUTOR, false for
 
             Map<String, Object> context = new HashMap<>();
             context.put("user", userContext);
@@ -124,8 +145,7 @@ public class MeetingService {
                     .setAudience("jitsi")
                     .setIssuer(JITSI_APP_ID)
                     .setSubject(JITSI_DOMAIN)
-                    .claim("room", roomId) // Use schedule ID as room name
-                    .claim("moderator", isModerator) // true for TUTOR, false for STUDENT
+                    .claim("room", roomId) // Use schedule ID as room name// true for TUTOR, false for STUDENT
                     .setExpiration(new Date(expMillis))
                     .claim("context", context)
                     .signWith(Keys.hmacShaKeyFor(keyBytes), SignatureAlgorithm.HS256)
@@ -142,5 +162,21 @@ public class MeetingService {
     private String generateMeetingLink(String token, String roomId) {
         // Generate the complete Jitsi meeting URL with token
         return String.format("https://%s/%s?jwt=%s", JITSI_DOMAIN, roomId, token);
+    }
+    public boolean isTutor(UUID id){
+        Optional<User> userOpt = userRepo.findById(id);
+        if(userOpt.isPresent()){
+            User user = userOpt.get();
+            return user.getRole() != null && "TUTOR".equalsIgnoreCase(user.getRole().getName());
+        }
+        return false;
+    }
+    public boolean isStudent(UUID id){
+        Optional<User> userOpt = userRepo.findById(id);
+        if(userOpt.isPresent()){
+            User user = userOpt.get();
+            return user.getRole() != null && "STUDENT".equalsIgnoreCase(user.getRole().getName());
+        }
+        return false;
     }
 }

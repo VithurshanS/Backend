@@ -200,7 +200,220 @@ Authorization: Bearer YOUR_JWT_TOKEN_HERE
 
 ---
 
-## 🎓 **7. Create Another Tutor Profile**
+## 📚 **7. Create Student Profile**
+
+**Method:** `POST`  
+**URL:** `http://localhost:8080/api/student-profile`  
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer YOUR_STUDENT_JWT_TOKEN_HERE
+```
+
+**Request Body:**
+```json
+{
+  "name": "Sarah Johnson",
+  "birthday": "1998-03-12",
+  "imageUrl": "https://example.com/profile-images/sarah-johnson.jpg",
+  "isActive": true,
+  "phoneNumber": "+1-555-0789",
+  "bio": "Computer Science student at State University. Passionate about programming and always eager to learn new technologies. Looking forward to improving my skills in advanced mathematics and data structures."
+}
+```
+
+**Expected Response:** `201 Created`
+```json
+{
+  "studentId": "uuid-here",
+  "name": "Sarah Johnson",
+  "birthday": "1998-03-12",
+  "imageUrl": "https://example.com/profile-images/sarah-johnson.jpg",
+  "lastAccessed": "2025-09-06T10:30:00",
+  "isActive": true,
+  "phoneNumber": "+1-555-0789",
+  "bio": "Computer Science student at State University...",
+  "user": {
+    "id": "uuid-here",
+    "email": "sarah.student@example.com",
+    "name": "Sarah Johnson",
+    "role": "STUDENT"
+  }
+}
+```
+
+**⚠️ IMPORTANT:** Use the student JWT token obtained from student login for this request!
+
+---
+
+## 📚 **8. Get Student Profile (Current User)**
+
+**Method:** `GET`  
+**URL:** `http://localhost:8080/api/student-profile/me`  
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer YOUR_STUDENT_JWT_TOKEN_HERE
+```
+
+**Expected Response:** `200 OK`
+```json
+{
+  "studentId": "uuid-here",
+  "name": "Sarah Johnson",
+  "birthday": "1998-03-12",
+  "imageUrl": "https://example.com/profile-images/sarah-johnson.jpg",
+  "lastAccessed": "2025-09-06T10:30:00",
+  "isActive": true,
+  "phoneNumber": "+1-555-0789",
+  "bio": "Computer Science student at State University...",
+  "user": {
+    "id": "uuid-here",
+    "email": "sarah.student@example.com",
+    "name": "Sarah Johnson",
+    "role": "STUDENT"
+  }
+}
+```
+
+---
+
+## 📚 **9. Update Student Profile**
+
+**Method:** `PUT`  
+**URL:** `http://localhost:8080/api/student-profile`  
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer YOUR_STUDENT_JWT_TOKEN_HERE
+```
+
+**Request Body:**
+```json
+{
+  "name": "Sarah Johnson",
+  "birthday": "1998-03-12",
+  "imageUrl": "https://example.com/profile-images/sarah-johnson-updated.jpg",
+  "isActive": true,
+  "phoneNumber": "+1-555-0999",
+  "bio": "Computer Science student at State University. Currently in my 3rd year, specializing in AI and Machine Learning. Actively seeking tutoring in advanced mathematics, algorithms, and data structures to enhance my academic performance."
+}
+```
+
+**Expected Response:** `200 OK`
+```json
+{
+  "studentId": "uuid-here",
+  "name": "Sarah Johnson",
+  "birthday": "1998-03-12",
+  "imageUrl": "https://example.com/profile-images/sarah-johnson-updated.jpg",
+  "lastAccessed": "2025-09-06T11:15:00",
+  "isActive": true,
+  "phoneNumber": "+1-555-0999",
+  "bio": "Computer Science student at State University. Currently in my 3rd year...",
+  "user": {
+    "id": "uuid-here",
+    "email": "sarah.student@example.com",
+    "name": "Sarah Johnson",
+    "role": "STUDENT"
+  }
+}
+```
+
+---
+
+## 📚 **10. Create Another Student Profile**
+
+**Method:** `POST`  
+**URL:** `http://localhost:8080/api/student-profile`  
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer ANOTHER_STUDENT_JWT_TOKEN
+```
+
+**Request Body:**
+```json
+{
+  "name": "Michael Chen",
+  "birthday": "1999-07-18",
+  "imageUrl": "https://example.com/profile-images/michael-chen.jpg",
+  "isActive": true,
+  "phoneNumber": "+1-555-0321",
+  "bio": "High school senior preparing for college entrance exams. Strong interest in physics and mathematics. Seeking help with calculus and advanced physics concepts."
+}
+```
+
+**Expected Response:** `201 Created`
+
+---
+
+## 📚 **11. Student Profile - Error Test Cases**
+
+### 11.1 Create Student Profile Without Authorization
+
+**Method:** `POST`  
+**URL:** `http://localhost:8080/api/student-profile`  
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "name": "Test Student",
+  "birthday": "2000-01-01",
+  "isActive": true
+}
+```
+
+**Expected Response:** `401 Unauthorized`
+```
+"Missing Authorization header"
+```
+
+### 11.2 Create Student Profile With Invalid Token
+
+**Method:** `POST`  
+**URL:** `http://localhost:8080/api/student-profile`  
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer INVALID_TOKEN_HERE
+```
+
+**Request Body:**
+```json
+{
+  "name": "Test Student",
+  "birthday": "2000-01-01",
+  "isActive": true
+}
+```
+
+**Expected Response:** `401 Unauthorized`
+```
+"Invalid token: [error message]"
+```
+
+### 11.3 Get Student Profile Without Authorization
+
+**Method:** `GET`  
+**URL:** `http://localhost:8080/api/student-profile/me`  
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Expected Response:** `401 Unauthorized`
+```
+"Missing Authorization header"
+```
+
+---
+
+## 🎓 **12. Create Another Tutor Profile**
 
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/tutor-profile`  
@@ -226,7 +439,7 @@ Authorization: Bearer YOUR_DIFFERENT_TUTOR_JWT_TOKEN
 
 ---
 
-## 📚 **8. Create Module (Mathematics)**
+## 📚 **13. Create Module (Mathematics)**
 
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/modules/create`  
@@ -254,7 +467,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 ---
 
-## 📚 **9. Create Module (Computer Science)**
+## 📚 **14. Create Module (Computer Science)**
 
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/modules/create`  
@@ -277,7 +490,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 ---
 
-## 📚 **10. Create Module (Science)**
+## 📚 **15. Create Module (Science)**
 
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/modules/create`  
@@ -300,7 +513,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 ---
 
-## 📋 **11. Get All Modules**
+## 📋 **16. Get All Modules**
 
 **Method:** `GET`  
 **URL:** `http://localhost:8080/api/modules`  
@@ -337,7 +550,7 @@ Content-Type: application/json
 
 ---
 
-## 🔍 **12. Search Modules by Name**
+## 🔍 **17. Search Modules by Name**
 
 **Method:** `GET`  
 **URL:** `http://localhost:8080/api/modules/search?query=calculus`  
@@ -364,7 +577,7 @@ Content-Type: application/json
 
 ---
 
-## 🔍 **13. Search Modules by Domain**
+## 🔍 **18. Search Modules by Domain**
 
 **Method:** `GET`  
 **URL:** `http://localhost:8080/api/modules/search?query=computer`  
@@ -375,7 +588,7 @@ Content-Type: application/json
 
 ---
 
-## 📚 **14. Get Modules by Domain ID**
+## 📚 **19. Get Modules by Domain ID**
 
 **Method:** `GET`  
 **URL:** `http://localhost:8080/api/modules/domain/1`  
@@ -394,7 +607,7 @@ Content-Type: application/json
 
 ---
 
-## 🗑️ **15. Delete Module**
+## 🗑️ **20. Delete Module**
 
 **Method:** `DELETE`  
 **URL:** `http://localhost:8080/api/modules/delete/{moduleId}`  
@@ -411,7 +624,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 ## 🚫 **Error Test Cases**
 
-### **16. Register with Existing Email**
+### **21. Register with Existing Email**
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/register`  
 **Body:**
@@ -425,7 +638,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 ```
 **Expected Response:** `409 Conflict` - "Email already exists"
 
-### **17. Login with Wrong Password**
+### **22. Login with Wrong Password**
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/auth/login`  
 **Body:**
@@ -437,7 +650,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 ```
 **Expected Response:** `401 Unauthorized` - "Invalid credentials"
 
-### **18. Create Module Without Authorization**
+### **23. Create Module Without Authorization**
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/modules/create`  
 **Headers:**
@@ -516,7 +729,7 @@ Content-Type: application/json
 
 ## 📅 **SCHEDULE MANAGEMENT**
 
-## 📅 **19. Create Schedule (One-time)**
+## 📅 **24. Create Schedule (One-time)**
 
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/schedules/create`  
@@ -555,7 +768,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 ---
 
-## 📅 **20. Create Weekly Recurring Schedule**
+## 📅 **25. Create Weekly Recurring Schedule**
 
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/schedules/create`  
@@ -584,7 +797,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 ---
 
-## 📅 **21. Create Daily Recurring Schedule**
+## 📅 **26. Create Daily Recurring Schedule**
 
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/schedules/create`  
@@ -608,7 +821,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 ---
 
-## 📅 **22. Test Schedule Conflict (Should Fail)**
+## 📅 **27. Test Schedule Conflict (Should Fail)**
 
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/schedules/test-conflict`  
@@ -639,11 +852,11 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 }
 ```
 
-**Explanation:** This should conflict with the 10:00-11:30 schedule created in test case 19, as 10:30-12:00 overlaps.
+**Explanation:** This should conflict with the 10:00-11:30 schedule created in test case 24, as 10:30-12:00 overlaps.
 
 ---
 
-## 📅 **23. Test Schedule Conflict (Different Tutor - Should Succeed)**
+## 📅 **28. Test Schedule Conflict (Different Tutor - Should Succeed)**
 
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/schedules/create`  
@@ -669,7 +882,7 @@ Authorization: Bearer DIFFERENT_TUTOR_JWT_TOKEN
 
 ---
 
-## 📅 **24. Get All Schedules**
+## 📅 **29. Get All Schedules**
 
 **Method:** `GET`  
 **URL:** `http://localhost:8080/api/schedules`  
@@ -697,7 +910,7 @@ Content-Type: application/json
 
 ---
 
-## 📅 **25. Get My Schedules (Tutor Only)**
+## 📅 **30. Get My Schedules (Tutor Only)**
 
 **Method:** `GET`  
 **URL:** `http://localhost:8080/api/schedules/my-schedules`  
@@ -711,7 +924,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 ---
 
-## 📅 **26. Get Schedules by Module**
+## 📅 **31. Get Schedules by Module**
 
 **Method:** `GET`  
 **URL:** `http://localhost:8080/api/schedules/module/{moduleId}`  
@@ -724,7 +937,7 @@ Content-Type: application/json
 
 ---
 
-## 📅 **27. Update Schedule**
+## 📅 **32. Update Schedule**
 
 **Method:** `PUT`  
 **URL:** `http://localhost:8080/api/schedules/{scheduleId}`  
@@ -750,7 +963,7 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 ---
 
-## 📅 **28. Delete Schedule**
+## 📅 **33. Delete Schedule**
 
 **Method:** `DELETE`  
 **URL:** `http://localhost:8080/api/schedules/{scheduleId}`  
@@ -810,8 +1023,8 @@ Authorization: Bearer YOUR_TUTOR_JWT_TOKEN
 
 **Step-by-step conflict testing:**
 
-1. **Create a base schedule** (Test case 19)
-2. **Test overlapping time** (Test case 22) - Should fail
+1. **Create a base schedule** (Test case 24)
+2. **Test overlapping time** (Test case 27) - Should fail
 3. **Test exact same time** - Should fail
 4. **Test adjacent time** (e.g., 11:30-13:00) - Should succeed
 5. **Test different day** - Should succeed

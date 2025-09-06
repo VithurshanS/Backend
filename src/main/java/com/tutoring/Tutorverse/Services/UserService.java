@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.tutoring.Tutorverse.Repository.userRepository;
+import java.util.UUID;
 
 import java.util.Optional;
 
@@ -39,6 +40,23 @@ public class UserService {
         newuser.setRole(roleService.findByName(request.getRole()));
         User savedUser = userRepo.save(newuser);
         return Optional.of(savedUser);
+    }
+
+    public boolean isTutor(UUID id){
+        Optional<User> userOpt = userRepo.findById(id);
+        if(userOpt.isPresent()){
+            User user = userOpt.get();
+            return user.getRole() != null && "TUTOR".equalsIgnoreCase(user.getRole().getName());
+        }
+        return false;
+    }
+    public boolean isStudent(UUID id){
+        Optional<User> userOpt = userRepo.findById(id);
+        if(userOpt.isPresent()){
+            User user = userOpt.get();
+            return user.getRole() != null && "STUDENT".equalsIgnoreCase(user.getRole().getName());
+        }
+        return false;
     }
 
 

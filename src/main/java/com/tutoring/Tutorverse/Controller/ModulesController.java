@@ -107,4 +107,10 @@ public class ModulesController {
         }
         return user;
     }
+
+    @GetMapping("/tutor/{id}")
+    public ResponseEntity<List<ModuelsDto>> getModulesByTutorId(@PathVariable UUID id) {
+        List<ModuelsDto> modules = modulesService.getModulesByTutorId(id);
+        return ResponseEntity.ok(modules);
+    }
 }

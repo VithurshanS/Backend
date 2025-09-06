@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.Optional;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Service
 public class ScheduleService {
@@ -69,14 +71,14 @@ public class ScheduleService {
 
             // Save schedule - this will trigger the database clash detection
             ScheduleEntity savedSchedule = scheduleRepository.save(schedule);
-            
+
             return convertToDto(savedSchedule);
 
         } catch (DataIntegrityViolationException e) {
             // Handle schedule clash exception from database trigger
             String message = e.getMostSpecificCause().getMessage();
             if (message != null && message.contains("Schedule clash detected")) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, 
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Schedule conflict: This time slot overlaps with an existing schedule for the same tutor");
             }
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Database constraint violation");
@@ -143,7 +145,7 @@ public class ScheduleService {
             }
 
             ScheduleEntity existing = existingOpt.get();
-            
+
             // Update fields
             if (scheduleDto.getDate() != null) existing.setDate(scheduleDto.getDate());
             if (scheduleDto.getTime() != null) existing.setTime(scheduleDto.getTime());
@@ -169,7 +171,7 @@ public class ScheduleService {
         } catch (DataIntegrityViolationException e) {
             String message = e.getMostSpecificCause().getMessage();
             if (message != null && message.contains("Schedule clash detected")) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, 
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Schedule conflict: This time slot overlaps with an existing schedule for the same tutor");
             }
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Database constraint violation");
@@ -179,6 +181,24 @@ public class ScheduleService {
             e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to update schedule");
         }
+    }
+
+    public UUID findMatchingSchedule(LocalDate reqDate, LocalTime reqTime, UUID moduleId) {
+        try {
+            return scheduleRepository.findMatchingSchedule(reqDate, reqTime, moduleId);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Error calling find_matching_schedule function: " + e.getMessage());
+        }
+    }
+
+    // Test method to call the function with your specified parameters
+    public UUID testFindMatchingSchedule() {
+        LocalDate reqDate = LocalDate.of(2025, 9, 10);
+        LocalTime reqTime = LocalTime.of(10, 30, 0);
+        UUID moduleId = UUID.fromString("6082f12a-2859-4ae5-93df-920ff6804fcf");
+
+        return findMatchingSchedule(reqDate, reqTime, moduleId);
     }
 
     private ScheduleDto convertToDto(ScheduleEntity entity) {
@@ -191,7 +211,7 @@ public class ScheduleService {
                 .weekNumber(entity.getWeekNumber())
                 .recurrentType(entity.getRecurrent() != null ? entity.getRecurrent().getRecurrentType() : null)
                 .moduleName(entity.getModule().getName())
-                .tutorName(entity.getModule().getTutor() != null ? 
+                .tutorName(entity.getModule().getTutor() != null ?
                     entity.getModule().getTutor().getFirstName() + " " + entity.getModule().getTutor().getLastName() : null)
                 .build();
     }

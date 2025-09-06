@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EnrollRepository extends JpaRepository<EnrollmentEntity, UUID> {
     List<EnrollmentEntity> findByStudentStudentId(UUID studentID);
-
+    boolean existsByStudentStudentIdAndModuleModuleId(UUID studentId, UUID moduleId);
 
     // Custom query methods (if needed) can be defined here
 }

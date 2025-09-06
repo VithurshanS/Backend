@@ -64,17 +64,4 @@ public class JwtServices {
         }
         return UUID.fromString(val.toString());
     }
-
-    public Long getRoleIdFromJwtToken(String token) {
-        Object val = Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("roles");
-        if (val == null) {
-            throw new RuntimeException("roles claim missing");
-        }
-        return Long.valueOf(val.toString());
-    }
 }

@@ -183,27 +183,6 @@ public class ScheduleController {
         }
     }
 
-//    // Test endpoint to call the find_matching_schedule database function
-//    @GetMapping("/test-matching-schedule")
-//    public ResponseEntity<?> testFindMatchingSchedule() {
-//        try {
-//            UUID result = scheduleService.testFindMatchingSchedule();
-//            return ResponseEntity.ok(Map.of(
-//                "message", "find_matching_schedule function called successfully",
-//                "parameters", Map.of(
-//                    "reqDate", "2025-09-10",
-//                    "reqTime", "10:30:00",
-//                    "moduleId", "6082f12a-2859-4ae5-93df-920ff6804fcf"
-//                ),
-//                "result", result
-//            ));
-//        } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                .body(Map.of("error", "Failed to call find_matching_schedule function",
-//                           "message", e.getMessage()));
-//        }
-//    }
-
     private User requireTutor(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or invalid authorization token");

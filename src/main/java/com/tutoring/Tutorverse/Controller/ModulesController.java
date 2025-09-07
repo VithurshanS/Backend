@@ -108,9 +108,11 @@ public class ModulesController {
         return user;
     }
 
-    @GetMapping("/tutor/{id}")
-    public ResponseEntity<List<ModuelsDto>> getModulesByTutorId(@PathVariable UUID id) {
-        List<ModuelsDto> modules = modulesService.getModulesByTutorId(id);
+    @GetMapping("/tutor")
+    public ResponseEntity<List<ModuelsDto>> getModulesByTutorId(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        User tutor = requireTutor(authHeader);
+        List<ModuelsDto> modules = modulesService.getModulesByTutorId(tutor.getId());
+        System.out.println(modules);
         return ResponseEntity.ok(modules);
     }
 }

@@ -4,6 +4,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.tutoring.Tutorverse.Dto.ModuelsDto;
 import com.tutoring.Tutorverse.Services.ModulesService;
+import com.tutoring.Tutorverse.Services.UserService;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import com.tutoring.Tutorverse.Services.JwtServices;
 import com.tutoring.Tutorverse.Repository.userRepository;
 import com.tutoring.Tutorverse.Repository.ModulesRepository;
@@ -35,6 +39,9 @@ public class ModulesController {
     private ModulesService modulesService;
 
     @Autowired
+    private UserService userService;
+
+    @Autowired
     private JwtServices jwtServices;
 
     @Autowired
@@ -48,6 +55,17 @@ public class ModulesController {
     public ResponseEntity<List<ModuelsDto>> getAllModules() {
         List<ModuelsDto> modules = modulesService.getAllModules();
         return ResponseEntity.ok(modules);
+    }
+
+    @GetMapping("/get-modulesfortutor")
+    public ResponseEntity<List<ModuelsDto>> getTutorModules(HttpServletRequest req){
+        UUID userId = userService.getUserIdFromRequest(req);
+        if(userId == null || !userService.isTutor(userId)){
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Requires TUTOR role");
+        }
+        List<ModuelsDto> modules = modulesService.getModulesByTutorId(userId);
+        return ResponseEntity.ok(modules);
+
     }
 
 

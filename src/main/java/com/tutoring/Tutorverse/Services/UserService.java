@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.tutoring.Tutorverse.Repository.userRepository;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 
 import java.util.Optional;
@@ -21,7 +23,10 @@ public class UserService {
     private RoleRepository roleRepo;
 
     @Autowired
-    private  RoleService roleService;
+    private RoleService roleService;
+
+    @Autowired
+    private JwtServices jwtServices;
 
 
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -59,6 +64,27 @@ public class UserService {
         return false;
     }
 
-
+    /**
+     * Extracts the user ID from the JWT token found in the request cookies
+     * @param req HttpServletRequest containing the cookies
+     * @return UUID of the user if valid token is found, null otherwise
+     */
+    public UUID getUserIdFromRequest(HttpServletRequest req) {
+        try {
+            if (req.getCookies() != null) {
+                for (Cookie cookie : req.getCookies()) {
+                    if ("jwt_token".equals(cookie.getName())) {
+                        String token = cookie.getValue();
+                        if (token != null && jwtServices.validateJwtToken(token)) {
+                            return jwtServices.getUserIdFromJwtToken(token);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error extracting user ID from request: " + e.getMessage());
+        }
+        return null;
+    }
 
 }

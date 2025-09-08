@@ -2,8 +2,7 @@ package com.tutoring.Tutorverse.Controller;
 
 
 import com.tutoring.Tutorverse.Dto.MaterialDto;
-import com.tutoring.Tutorverse.Repository.MaterialRepository;
-import com.tutoring.Tutorverse.Repository.ModulesRepository;
+import com.tutoring.Tutorverse.Services.EnrollmentService;
 import com.tutoring.Tutorverse.Services.MaterialService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +15,7 @@ import com.tutoring.Tutorverse.Services.S3Service;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import com.tutoring.Tutorverse.Services.SendgridService;
 
 
 @RestController
@@ -23,12 +23,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class S3Controller {
 
     private final S3Service s3Service;
+    private final MaterialService materialService;
+    private final SendgridService sendgridService;
+    private final EnrollmentService enrollmentService;
 
-    @Autowired
-    private MaterialService materialService;
-
-    public S3Controller(S3Service s3Service) {
+    public S3Controller(
+            S3Service s3Service,
+            MaterialService materialService,
+            SendgridService sendgridService,
+            EnrollmentService enrollmentService
+    ) {
         this.s3Service = s3Service;
+        this.materialService = materialService;
+        this.sendgridService = sendgridService;
+        this.enrollmentService = enrollmentService;
     }
 
     @PostMapping("/upload")
@@ -66,6 +74,27 @@ public class S3Controller {
             }
 
             MaterialDto material = materialService.saveToDatabase(module_id, title, description, type, fileUrl);
+
+            // Send email to students
+            List<String> enrolled_emails = enrollmentService.getStudentEmailsByModuleId(module_id);
+            System.out.println("email list" + enrolled_emails);
+            for (String email : enrolled_emails) {
+                sendgridService.sendContentUploadEmail(
+                                email,
+                                "New Material Has Been Uploaded: " + material.getTitle(),
+                                "Dear Student, \n A new course material han been uploaded\n\n" +
+                                        ".\n\n" +
+                                        "Title: " + material.getTitle() + "\n" +
+                                        "🔗 Access it here: " + material.getUrl() + "\n\n" +
+                                        "We encourage you to review this material at your earliest convenience to stay updated with your course progress.\n\n" +
+                                        "Best regards,\n" +
+                                        "Tutorverse Team"
+                        );
+
+
+
+            }
+
             return ResponseEntity.ok(material);
 
         }

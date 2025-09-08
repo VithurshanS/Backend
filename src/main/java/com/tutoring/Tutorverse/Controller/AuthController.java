@@ -111,7 +111,7 @@ public class AuthController {
 
         // Store JWT in HTTP-only cookie for session management (same as OAuth2)
         Cookie jwtCookie = new Cookie("jwt_token", token);
-        jwtCookie.setHttpOnly(true);
+        jwtCookie.setHttpOnly(false);
         jwtCookie.setSecure(false); // Set to true in production with HTTPS
         jwtCookie.setPath("/");
         jwtCookie.setMaxAge(86400); // 1 day
@@ -173,7 +173,7 @@ public class AuthController {
 
         // Store JWT in HTTP-only cookie for session management (same as OAuth2)
         Cookie jwtCookie = new Cookie("jwt_token", token);
-        jwtCookie.setHttpOnly(true);
+        jwtCookie.setHttpOnly(false);
         jwtCookie.setSecure(false); // Set to true in production with HTTPS
         jwtCookie.setPath("/");
         jwtCookie.setMaxAge(86400); // 1 day
@@ -217,7 +217,7 @@ public class AuthController {
     @GetMapping("/api/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
         Cookie jwtCookie = new Cookie("jwt_token", null);
-        jwtCookie.setHttpOnly(true);
+        jwtCookie.setHttpOnly(false);
         jwtCookie.setSecure(false);
         jwtCookie.setPath("/");
         jwtCookie.setMaxAge(0);

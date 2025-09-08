@@ -84,7 +84,7 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
 
             // Store JWT in HTTP-only cookie for session management
             Cookie jwtCookie = new Cookie("jwt_token", jwttoken);
-            jwtCookie.setHttpOnly(true); // Prevents JavaScript access (XSS protection)
+            jwtCookie.setHttpOnly(false); // Prevents JavaScript access (XSS protection)
             jwtCookie.setSecure(false); // Set to true in production with HTTPS
             jwtCookie.setPath("/"); // Available for entire application
             jwtCookie.setMaxAge(86400); // 1 day (same as JWT expiration)

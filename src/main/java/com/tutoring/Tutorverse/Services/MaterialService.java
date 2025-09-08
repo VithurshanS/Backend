@@ -25,8 +25,8 @@ public class MaterialService {
 
 
     public List<MaterialDto> getAllMaterialsByModuleId(UUID moduleId) {
-        try{
-            return materialRepository.findAll().stream()
+        try {
+            return materialRepository.findMaterialByModuleId(moduleId).stream() // use .stream() here
                     .map(this::convertToDto)
                     .collect(Collectors.toList());
         } catch (Exception e) {
@@ -34,6 +34,8 @@ public class MaterialService {
             return List.of();
         }
     }
+
+
 
     private MaterialDto convertToDto(MaterialEntity entity) {
         return MaterialDto.builder()

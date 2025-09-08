@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "usersss")
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue

@@ -180,3 +180,43 @@ INSERT INTO roles (name) VALUES ('ADMIN'), ('TUTOR'), ('STUDENT')
 
 INSERT INTO recurrent (recurrent_type) VALUES ('Weekly'), ('Daily')
     ON CONFLICT DO NOTHING;
+
+
+CREATE OR REPLACE FUNCTION find_matching_schedule(
+    req_date DATE,
+    req_time TIME,
+    mod_id UUID
+) RETURNS UUID AS $$
+DECLARE
+    matched_schedule UUID;
+BEGIN
+    SELECT s.schedule_id
+    INTO matched_schedule
+    FROM schedules s
+    WHERE s.module_id = mod_id
+      AND (
+            -- case 1: specific date
+            (s.week_number = 0 AND s.date = req_date
+                 AND req_time BETWEEN (s.time - interval '1 hour')
+                                   AND (s.time + (s.duration || ' minutes')::interval + interval '1 hour'))
+
+            -- case 2: weekly recurrence
+            OR (s.week_number BETWEEN 1 AND 7
+                 AND EXTRACT(ISODOW FROM req_date)::int = s.week_number
+                 AND req_time BETWEEN (s.time - interval '1 hour')
+                                   AND (s.time + (s.duration || ' minutes')::interval + interval '1 hour'))
+
+            -- case 3: daily recurrence
+            OR (s.week_number = 8
+                 AND req_time BETWEEN (s.time - interval '1 hour')
+                                   AND (s.time + (s.duration || ' minutes')::interval + interval '1 hour'))
+          )
+    LIMIT 1;
+
+    IF matched_schedule IS NULL THEN
+        RAISE EXCEPTION 'No matching schedule found for module % on % at %', mod_id, req_date, req_time;
+    END IF;
+
+    RETURN matched_schedule;
+END;
+$$ LANGUAGE plpgsql;

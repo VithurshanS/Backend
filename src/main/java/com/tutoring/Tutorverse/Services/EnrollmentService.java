@@ -17,6 +17,7 @@ import com.tutoring.Tutorverse.Model.ModuelsEntity;
 import com.tutoring.Tutorverse.Repository.EnrollRepository;
 import com.tutoring.Tutorverse.Repository.ModulesRepository;
 import com.tutoring.Tutorverse.Repository.StudentProfileRepository;
+import com.tutoring.Tutorverse.Repository.EmailRepository;
 
 @Service
 public class EnrollmentService {
@@ -28,6 +29,8 @@ public class EnrollmentService {
     private ModulesRepository moduleRepository;
     @Autowired
     private userRepository userRepo;
+    @Autowired
+    private EmailRepository emailRepository;
 
     public String EnrollTOModule(EnrollCreateDto enrollCreateDto) {
         StudentEntity student = findStudentById(enrollCreateDto.getStudentId());
@@ -81,6 +84,10 @@ public class EnrollmentService {
             return user.getRole() != null && "STUDENT".equalsIgnoreCase(user.getRole().getName());
         }
         return false;
+    }
+
+    public List<String> getStudentEmailsByModuleId(UUID moduleId) {
+        return emailRepository.findEmailsByModuleId(moduleId);
     }
 
 

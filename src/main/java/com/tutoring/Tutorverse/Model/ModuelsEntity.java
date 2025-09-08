@@ -1,6 +1,7 @@
 package com.tutoring.Tutorverse.Model;
 
 import jakarta.persistence.*;
+import jakarta.persistence.criteria.CriteriaBuilder.In;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -42,7 +43,7 @@ public class ModuelsEntity {
     private BigDecimal fee;
 
     @Column(name = "duration")
-    private Duration duration;
+    private Long duration;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)

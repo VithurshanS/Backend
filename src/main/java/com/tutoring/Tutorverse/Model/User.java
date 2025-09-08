@@ -3,6 +3,7 @@ import java.util.UUID;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 @Entity
@@ -24,6 +25,7 @@ public class User {
     private String providerid;
 
     @Column(name = "password", nullable = true)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // prevent serialization (still allow deserialization)
     private String password;
 
     @Column(name = "name")

@@ -12,6 +12,9 @@ import java.io.File;
 import java.util.*;
 
 import com.tutoring.Tutorverse.Services.S3Service;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 import com.tutoring.Tutorverse.Services.SendgridService;
 
 
@@ -116,4 +119,30 @@ public class S3Controller {
 
 
     }
+
+    @PostMapping("upload/image")
+    public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body("No file uploaded");
+        }
+
+        // Save the file temporarily
+        try{
+            // Save the file temporarily
+            File tempFile = File.createTempFile("upload-", file.getOriginalFilename());
+            file.transferTo(tempFile);
+            // Upload and get the URL
+            String fileUrl = s3Service.uploadFile(tempFile.getAbsolutePath(), file.getOriginalFilename());
+            return ResponseEntity.ok(fileUrl);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error uploading image");
+        }
+    }
+
 }
+
+
+

@@ -43,7 +43,7 @@ public class ModuelsEntity {
     private BigDecimal fee;
 
     @Column(name = "duration")
-    private Long duration;
+    private Duration duration;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)

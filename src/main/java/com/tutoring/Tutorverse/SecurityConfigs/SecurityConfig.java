@@ -38,7 +38,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Disable CSRF for API endpoints
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "http://localhost:3000"));
@@ -52,11 +52,10 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**","/").permitAll()
-                        // Swagger / OpenAPI docs
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/**").permitAll() // allow all API endpoints without authentication
-                        .requestMatchers("/login", "/oauth2/**", "/error").permitAll() // allow OAuth2 endpoints and error page
-                        .requestMatchers("/home/**").permitAll() // allow home endpoints for OAuth2 callback
+                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/login", "/oauth2/**", "/error").permitAll()
+                        .requestMatchers("/home/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

@@ -19,13 +19,11 @@ import java.util.Optional;
 
 @Component
 public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandler {
-//    private final userRepository userRepository;
+
 
     @Autowired
     private JwtServices jwtServices;
 
-//    @Autowired
-//    private RoleService roleService;
 
     @Autowired
     private UserService userService;

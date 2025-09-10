@@ -125,8 +125,6 @@ public class ScheduleController {
         try {
             User tutor = requireTutor(authHeader);
 
-            // Here you would need to verify ownership, but for simplicity, we'll allow any tutor to delete
-            // In production, you should verify the schedule belongs to the tutor
 
             scheduleService.deleteSchedule(scheduleId);
             return ResponseEntity.noContent().build();
@@ -138,14 +136,12 @@ public class ScheduleController {
         }
     }
 
-    // Test endpoint specifically for conflict testing
     @PostMapping("/test-conflict")
     public ResponseEntity<?> testScheduleConflict(@RequestBody ScheduleDto scheduleDto,
                                                 @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
             User tutor = requireTutor(authHeader);
 
-            // Verify module ownership
             Optional<ModuelsEntity> moduleOpt = modulesRepository.findById(scheduleDto.getModuleId());
             if (moduleOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Module not found");

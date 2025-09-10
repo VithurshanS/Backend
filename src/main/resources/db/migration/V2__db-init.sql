@@ -142,19 +142,17 @@ WHERE m.tutor_id = (
     WHERE m2.module_id = NEW.module_id
 )
   AND (
-    -- specific date
+    
     (NEW.week_number = 0 AND s.date = NEW.date)
-        -- weekly
         OR (NEW.week_number BETWEEN 1 AND 7 AND s.week_number = NEW.week_number)
-        -- daily
         OR (NEW.week_number = 8)
     )
-  -- overlap
+
   AND (
     NEW.time < (s.time + (s.duration || ' minutes')::interval)
         AND s.time < (NEW.time + (NEW.duration || ' minutes')::interval)
     )
-  -- exclude current schedule on update
+
   AND s.schedule_id != COALESCE(NEW.schedule_id, '00000000-0000-0000-0000-000000000000'::uuid);
 
 IF clash_count > 0 THEN
@@ -172,9 +170,7 @@ CREATE TRIGGER trg_check_schedule_clash
     BEFORE INSERT OR UPDATE ON schedules
                          FOR EACH ROW EXECUTE FUNCTION check_schedule_clash();
 
--- =============================================
--- Default Seed Data
--- =============================================
+
 INSERT INTO roles (name) VALUES ('ADMIN'), ('TUTOR'), ('STUDENT')
     ON CONFLICT (name) DO NOTHING;
 
@@ -195,18 +191,18 @@ BEGIN
     FROM schedules s
     WHERE s.module_id = mod_id
       AND (
-            -- case 1: specific date
+          
             (s.week_number = 0 AND s.date = req_date
                  AND req_time BETWEEN (s.time - interval '1 hour')
                                    AND (s.time + (s.duration || ' minutes')::interval + interval '1 hour'))
 
-            -- case 2: weekly recurrence
+       
             OR (s.week_number BETWEEN 1 AND 7
                  AND EXTRACT(ISODOW FROM req_date)::int = s.week_number
                  AND req_time BETWEEN (s.time - interval '1 hour')
                                    AND (s.time + (s.duration || ' minutes')::interval + interval '1 hour'))
 
-            -- case 3: daily recurrence
+            
             OR (s.week_number = 8
                  AND req_time BETWEEN (s.time - interval '1 hour')
                                    AND (s.time + (s.duration || ' minutes')::interval + interval '1 hour'))

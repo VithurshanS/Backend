@@ -41,6 +41,7 @@ public class EnrollmentController {
         try {
             UUID userId = userService.getUserIdFromRequest(req);
             if(userId == null || !userService.isStudent(userId)) {
+
                 return ResponseEntity.status(401).body("Unauthorized or Invalid User");
             }
             EnrollCreateDto enrollCreateDto = new EnrollCreateDto();

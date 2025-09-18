@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -23,6 +24,9 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
 
     @Autowired
     private JwtServices jwtServices;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
 
     @Autowired
@@ -88,7 +92,7 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
             jwtCookie.setMaxAge(86400); // 1 day (same as JWT expiration)
             response.addCookie(jwtCookie);
 
-            String redirUrl = String.format("http://localhost:3000");
+            String redirUrl = String.format(frontendUrl);
             response.sendRedirect(redirUrl);
         } catch (Exception e) {
             // Enhanced error logging to identify the exact issue

@@ -13,10 +13,13 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.UUID;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +30,12 @@ import java.util.Optional;
 
 @RestController
 public class AuthController {
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
+
+    @Value("${server.ssl.enabled:false}")
+    private boolean sslEnabled;
 
     @Autowired
     private userRepository userRepo;
@@ -109,13 +118,9 @@ public class AuthController {
 
         String token = jwtServices.generateJwtToken(addedUser.get());
 
-        // Store JWT in HTTP-only cookie for session management (same as OAuth2)
-        Cookie jwtCookie = new Cookie("jwt_token", token);
-        jwtCookie.setHttpOnly(false);
-        jwtCookie.setSecure(false); // Set to true in production with HTTPS
-        jwtCookie.setPath("/");
-        jwtCookie.setMaxAge(86400); // 1 day
-        response.addCookie(jwtCookie);
+        // Store JWT in cookie using helper method (automatically handles dev/prod)
+        setJwtCookie(response, token);
+        
         return ResponseEntity.ok("User registered");
     }
 
@@ -171,13 +176,8 @@ public class AuthController {
 
         String token = jwtServices.generateJwtToken(user);
 
-        // Store JWT in HTTP-only cookie for session management (same as OAuth2)
-        Cookie jwtCookie = new Cookie("jwt_token", token);
-        jwtCookie.setHttpOnly(false);
-        jwtCookie.setSecure(false); // Set to true in production with HTTPS
-        jwtCookie.setPath("/");
-        jwtCookie.setMaxAge(86400); // 1 day
-        response.addCookie(jwtCookie);
+        // Store JWT in cookie using helper method (automatically handles dev/prod)
+        setJwtCookie(response, token);
 
         return ResponseEntity.ok(Map.of(
             "token", token,
@@ -215,14 +215,19 @@ public class AuthController {
     }
 
     @GetMapping("/api/logout")
-    public ResponseEntity<?> logout(HttpServletResponse response) {
-        Cookie jwtCookie = new Cookie("jwt_token", null);
-        jwtCookie.setHttpOnly(false);
-        jwtCookie.setSecure(false);
-        jwtCookie.setPath("/");
-        jwtCookie.setMaxAge(0);
-        response.addCookie(jwtCookie);
-
+    public ResponseEntity<?> logout(HttpServletResponse response, HttpServletRequest request) {
+        // Log current user for debugging
+        UUID currentUserId = userService.getUserIdFromRequest(request);
+        System.out.println("=== LOGOUT REQUEST ===");
+        System.out.println("Current User ID: " + currentUserId);
+        
+        // Clear JWT cookie using helper method (automatically handles dev/prod)
+        clearJwtCookie(response);
+        
+        // Clear Spring Security context
+        SecurityContextHolder.clearContext();
+        
+        System.out.println("Logout completed - cookie cleared and security context cleared");
         return ResponseEntity.ok().body("{\"message\": \"Logged out successfully\"}");
     }
     @PostMapping("/sum/post")
@@ -271,4 +276,58 @@ public class AuthController {
 //            </html>
 //            """;
 //    }
+
+    /**
+     * Helper method to set JWT cookie with production-ready configuration
+     * Automatically handles development vs production settings
+     */
+    private void setJwtCookie(HttpServletResponse response, String token) {
+        // Determine if we're in production (HTTPS) or development
+        boolean isProduction = sslEnabled || frontendUrl.startsWith("https://");
+        
+        if (isProduction) {
+            // Production configuration: Secure, SameSite=None, cross-domain
+            response.setHeader("Set-Cookie", String.format(
+                "jwt_token=%s; Path=/; Max-Age=86400; Secure; SameSite=None; Domain=.shancloudservice.com",
+                token
+            ));
+        } else {
+            // Development configuration: Non-secure, SameSite=Lax, localhost
+            Cookie jwtCookie = new Cookie("jwt_token", token);
+            jwtCookie.setHttpOnly(false);
+            jwtCookie.setSecure(false);
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(86400); // 1 day
+            response.addCookie(jwtCookie);
+        }
+    }
+
+    /**
+     * Helper method to clear JWT cookie
+     */
+    private void clearJwtCookie(HttpServletResponse response) {
+        boolean isProduction = sslEnabled || frontendUrl.startsWith("https://");
+        
+        if (isProduction) {
+            // Production: Clear secure cookie with multiple variations to ensure cleanup
+            response.addHeader("Set-Cookie", 
+                "jwt_token=; Path=/; Max-Age=0; Secure; SameSite=None; Domain=.shancloudservice.com"
+            );
+            // Also clear without domain to catch any cookies set without domain
+            response.addHeader("Set-Cookie", 
+                "jwt_token=; Path=/; Max-Age=0; Secure; SameSite=None"
+            );
+        } else {
+            // Development: Clear non-secure cookie with multiple variations
+            Cookie jwtCookie = new Cookie("jwt_token", "");
+            jwtCookie.setHttpOnly(false);
+            jwtCookie.setSecure(false);
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(0);
+            response.addCookie(jwtCookie);
+            
+            // Also add Set-Cookie header as backup
+            response.addHeader("Set-Cookie", "jwt_token=; Path=/; Max-Age=0");
+        }
+    }
 }

@@ -7,8 +7,6 @@ import com.tutoring.Tutorverse.Services.ModulesService;
 import com.tutoring.Tutorverse.Services.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
-
-import com.tutoring.Tutorverse.Services.JwtServices;
 import com.tutoring.Tutorverse.Repository.userRepository;
 import com.tutoring.Tutorverse.Repository.ModulesRepository;
 import com.tutoring.Tutorverse.Model.User;
@@ -24,7 +22,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
@@ -40,9 +37,6 @@ public class ModulesController {
 
     @Autowired
     private UserService userService;
-
-    @Autowired
-    private JwtServices jwtServices;
 
     @Autowired
     private userRepository userRepo;
@@ -78,8 +72,8 @@ public class ModulesController {
 
 
     @PostMapping("/create")
-    public ResponseEntity<?> createModule(@RequestBody ModuelsDto moduelsDto, @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        User tutor = requireTutor(authHeader);
+    public ResponseEntity<?> createModule(@RequestBody ModuelsDto moduelsDto, HttpServletRequest req) {
+        User tutor = requireTutor(req);
         // Force tutorId from token, ignore any client-sent tutorId
         moduelsDto.setTutorId(tutor.getId());
         modulesService.createModule(moduelsDto);
@@ -88,8 +82,8 @@ public class ModulesController {
 
 
     @DeleteMapping("/delete/{moduleId}")
-    public ResponseEntity<Void> deleteModule(@PathVariable UUID moduleId, @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        User tutor = requireTutor(authHeader);
+    public ResponseEntity<Void> deleteModule(@PathVariable UUID moduleId, HttpServletRequest req) {
+        User tutor = requireTutor(req);
         Optional<ModuelsEntity> moduleOpt = modulesRepository.findById(moduleId);
         if (moduleOpt.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Module not found");
@@ -109,15 +103,11 @@ public class ModulesController {
         return ResponseEntity.ok(results);
     }
 
-    private User requireTutor(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing token");
+    private User requireTutor(HttpServletRequest req) {
+        UUID userId = userService.getUserIdFromRequest(req);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or invalid token");
         }
-        String token = authHeader.substring(7);
-        if (!jwtServices.validateJwtToken(token)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
-        }
-        UUID userId = jwtServices.getUserIdFromJwtToken(token);
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         if (user.getRole() == null || user.getRole().getName() == null || !user.getRole().getName().equalsIgnoreCase("TUTOR")) {
@@ -127,8 +117,8 @@ public class ModulesController {
     }
 
     @GetMapping("/tutor")
-    public ResponseEntity<List<ModuelsDto>> getModulesByTutorId(@RequestHeader(value = "Authorization", required = false) String authHeader) {
-        User tutor = requireTutor(authHeader);
+    public ResponseEntity<List<ModuelsDto>> getModulesByTutorId(HttpServletRequest req) {
+        User tutor = requireTutor(req);
         List<ModuelsDto> modules = modulesService.getModulesByTutorId(tutor.getId());
         System.out.println(modules);
         return ResponseEntity.ok(modules);

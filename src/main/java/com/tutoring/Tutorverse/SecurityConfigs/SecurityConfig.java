@@ -5,6 +5,7 @@ import com.tutoring.Tutorverse.Repository.userRepository;
 import com.tutoring.Tutorverse.Services.CustomOAuth2RequestServices;
 import com.tutoring.Tutorverse.Services.Oauth2SuccessHandlerServices;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -22,6 +23,8 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @Autowired
     @Lazy
@@ -41,7 +44,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "http://localhost:3000"));
+                    config.setAllowedOriginPatterns(Arrays.asList(frontendUrl));
                     config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
                     config.setAllowedHeaders(Arrays.asList("*"));
                     config.setAllowCredentials(true);

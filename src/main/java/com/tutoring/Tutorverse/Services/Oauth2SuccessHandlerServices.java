@@ -1,14 +1,13 @@
 package com.tutoring.Tutorverse.Services;
 import com.tutoring.Tutorverse.Dto.UserCreateDto; // Fixed package name casing (Dto vs DTO)
-import com.tutoring.Tutorverse.Model.Role;
 import com.tutoring.Tutorverse.Model.User;
-import com.tutoring.Tutorverse.Repository.userRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -24,6 +23,11 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
     @Autowired
     private JwtServices jwtServices;
 
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
+
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
 
     @Autowired
     private UserService userService;
@@ -80,15 +84,10 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
 
             String jwttoken = jwtServices.generateJwtToken(newUser.get());
 
-            // Store JWT in HTTP-only cookie for session management
-            Cookie jwtCookie = new Cookie("jwt_token", jwttoken);
-            jwtCookie.setHttpOnly(false); // Prevents JavaScript access (XSS protection)
-            jwtCookie.setSecure(false); // Set to true in production with HTTPS
-            jwtCookie.setPath("/"); // Available for entire application
-            jwtCookie.setMaxAge(86400); // 1 day (same as JWT expiration)
-            response.addCookie(jwtCookie);
+            // Store JWT in cookie for session management (environment-aware configuration)
+            setJwtCookie(response, jwttoken);
 
-            String redirUrl = String.format("http://localhost:3000");
+            String redirUrl = String.format(frontendUrl);
             response.sendRedirect(redirUrl);
         } catch (Exception e) {
             // Enhanced error logging to identify the exact issue
@@ -99,6 +98,29 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
             e.printStackTrace();
             System.err.println("===============================");
             response.sendRedirect("/error?message=oauth2_callback_failed&details=" + e.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Helper method to set JWT cookie with environment-aware configuration
+     */
+    private void setJwtCookie(HttpServletResponse response, String jwtToken) {
+        boolean isProduction = "prod".equals(activeProfile);
+        
+        if (isProduction) {
+            // Production: Cross-domain HTTPS configuration
+            response.setHeader("Set-Cookie", String.format(
+                "jwt_token=%s; Path=/; Max-Age=86400; HttpOnly=false; Secure=true; SameSite=None; Domain=.shancloudservice.com",
+                jwtToken
+            ));
+        } else {
+            // Development: Local HTTP configuration
+            Cookie jwtCookie = new Cookie("jwt_token", jwtToken);
+            jwtCookie.setHttpOnly(false); // Frontend needs to read this
+            jwtCookie.setSecure(false); // HTTP in development
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(86400); // 1 day
+            response.addCookie(jwtCookie);
         }
     }
 }

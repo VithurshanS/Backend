@@ -25,8 +25,20 @@ public class StudentEntity {
     @JoinColumn(name = "student_id") 
     private User user;
 
-    @Column(name = "name", nullable = false)
-    private String name;
+    @Column(name = "first_name", nullable = false)
+    private String firstName;
+
+    @Column(name = "last_name", nullable = false)
+    private String lastName;
+
+    @Column(name = "address", nullable = false)
+    private String address;
+
+    @Column(name = "city", nullable = false)
+    private String city;
+
+    @Column(name = "country", nullable = false)
+    private String country;
 
     @Column(name = "birthday")
     private LocalDate birthday;

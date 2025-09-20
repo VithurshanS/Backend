@@ -106,9 +106,10 @@ public class AuthController {
         String email = body.get("email");
         String password = body.get("password");
         String role = body.get("role");
-        String name = body.get("name");
+        String firstName = body.get("firstName");
+        String lastName = body.get("lastName");
 
-        Optional<User> addedUser = userService.addUser(UserCreateDto.emailUser(email,name,password,role));
+        Optional<User> addedUser = userService.addUser(UserCreateDto.emailUser(email,firstName,lastName,password,role));
 
 
         if (addedUser.isEmpty()) {
@@ -183,7 +184,8 @@ public class AuthController {
             "message", "Login successful",
             "user", Map.of(
                 "email", user.getEmail(),
-                "name", user.getName() != null ? user.getName() : "",
+                "firstName", user.getFirstName() != null ? user.getFirstName() : "",
+                "lastName", user.getLastName() != null ? user.getLastName() : "",
                 "role", user.getRole().getName()
             )
         ));

@@ -28,9 +28,12 @@ public class User {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // prevent serialization (still allow deserialization)
     private String password;
 
-    @Column(name = "name")
-    private String name;
-    
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
     @Column(name = "is_email_verified", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean is_email_verified = false;
 
@@ -71,8 +74,12 @@ public class User {
         return password;
     }
 
-    public String getName() {
-        return name;
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
     }
 
     public boolean isEmailVerified() {
@@ -99,8 +106,12 @@ public class User {
         this.password = password;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public void setEmailVerified(boolean emailVerified) {

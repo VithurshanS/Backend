@@ -106,8 +106,8 @@ public class AuthController {
         String email = body.get("email");
         String password = body.get("password");
         String role = body.get("role");
-        String firstName = body.get("firstName");
-        String lastName = body.get("lastName");
+        String firstName = body.get("first_name");
+        String lastName = body.get("last_name");
 
         Optional<User> addedUser = userService.addUser(UserCreateDto.emailUser(email,firstName,lastName,password,role));
 

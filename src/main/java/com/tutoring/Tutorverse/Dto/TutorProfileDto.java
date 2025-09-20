@@ -20,5 +20,8 @@ public class TutorProfileDto {
     private String portfolio;
     private String bio;
     private String image;
+    private String address;
+    private String city;
+    private String country;
     
 }

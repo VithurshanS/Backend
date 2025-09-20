@@ -31,3 +31,39 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment files (secrets) ###
+# Base env file
+.env
+# Local overrides / variants
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+### DGS (Domain Graph Service) Components ###
+# Generated GraphQL schema files
+**/generated/
+**/build/generated/
+**/target/generated-sources/
+**/target/generated-test-sources/
+
+# DGS Codegen generated files
+**/src/main/java/**/generated/
+**/src/test/java/**/generated/
+
+# GraphQL schema registry files
+.graphql-schema-registry/
+
+# DGS specific build artifacts
+**/dgs-codegen/
+**/graphql-dgs-codegen/
+
+# GraphQL introspection files
+schema.json
+schema.graphql
+introspection.json
+
+# DGS test artifacts
+**/dgs-test/

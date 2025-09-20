@@ -34,7 +34,11 @@ public class StudentProfileService {
 
 		StudentEntity student = StudentEntity.builder()
 				.user(user)
-				.name(dto.getName())
+				.firstName(dto.getFirstName())
+				.lastName(dto.getLastName())
+				.address(dto.getAddress())
+				.city(dto.getCity())
+				.country(dto.getCountry())
 				.birthday(dto.getBirthday())
 				.imageUrl(dto.getImageUrl())
 				.phoneNumber(dto.getPhoneNumber())
@@ -50,7 +54,11 @@ public class StudentProfileService {
 	public StudentEntity updateStudentProfile(UUID id, StudentProfileDto dto) {
 		StudentEntity student = getStudentProfile(id);
 		if (student != null) {
-			student.setName(dto.getName());
+			student.setFirstName(dto.getFirstName());
+			student.setLastName(dto.getLastName());
+			student.setAddress(dto.getAddress());
+			student.setCity(dto.getCity());
+			student.setCountry(dto.getCountry());
 			student.setBirthday(dto.getBirthday());
 			student.setImageUrl(dto.getImageUrl());
 			student.setPhoneNumber(dto.getPhoneNumber());

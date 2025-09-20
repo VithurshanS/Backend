@@ -52,7 +52,7 @@ public class StudentEntity {
     @Column(name = "is_active", nullable = true)
     private Boolean isActive;
 
-    @Column(name = "phone_number", nullable = true)
+    @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
 
     @Column(name = "bio", nullable = true, columnDefinition = "TEXT")

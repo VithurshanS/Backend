@@ -11,12 +11,16 @@ import java.util.UUID;
 public class StudentProfileDto {
     
     private UUID studentId;  
-    private String name;
+    private String firstName;
+    private String lastName;
     private LocalDate birthday;
     private String imageUrl; 
     private LocalDate lastAccessed;
     private Boolean isActive;
     private String phoneNumber;
     private String bio;
+    private String address;
+    private String city;
+    private String country;
 
 }

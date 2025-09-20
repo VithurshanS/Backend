@@ -26,4 +26,7 @@ public class EnrollmentEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "module_id", nullable = false)
     private ModuelsEntity module;
+
+    @Column(name = "is_paid", nullable = false)
+    private boolean isPaid;
 }

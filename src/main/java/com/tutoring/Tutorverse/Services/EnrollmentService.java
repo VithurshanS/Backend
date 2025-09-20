@@ -38,6 +38,7 @@ public class EnrollmentService {
         EnrollmentEntity enrollment = new EnrollmentEntity();
         enrollment.setStudent(student);
         enrollment.setModule(module);
+        enrollment.setPaid(false);
         enrollRepository.save(enrollment);
         return "Enrolled Successfully " + enrollment.getEnrolmentId();
     }

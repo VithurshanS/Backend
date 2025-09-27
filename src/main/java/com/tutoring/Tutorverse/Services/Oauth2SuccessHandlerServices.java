@@ -78,16 +78,31 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
             // Ensure we have the saved user with a valid ID
 
 
-            if(session != null){
-                session.removeAttribute("signup_role");
-            }
-
+            // Generate JWT token
             String jwttoken = jwtServices.generateJwtToken(newUser.get());
 
             // Store JWT in cookie for session management (environment-aware configuration)
             setJwtCookie(response, jwttoken);
 
-            String redirUrl = String.format(frontendUrl);
+            // Check for custom redirect URI in session
+            String customRedirectUri = null;
+            if(session != null){
+                customRedirectUri = (String) session.getAttribute("custom_redirect_uri");
+                // Clean up session attributes
+                session.removeAttribute("signup_role");
+                session.removeAttribute("custom_redirect_uri");
+            }
+
+            // Use custom redirect URI if provided, otherwise use default frontend URL
+            String redirUrl;
+            if (customRedirectUri != null && !customRedirectUri.isEmpty()) {
+                redirUrl = customRedirectUri;
+                System.out.println("Using custom redirect URI: " + redirUrl);
+            } else {
+                redirUrl = frontendUrl;
+                System.out.println("Using default frontend URL: " + redirUrl);
+            }
+            
             response.sendRedirect(redirUrl);
         } catch (Exception e) {
             // Enhanced error logging to identify the exact issue

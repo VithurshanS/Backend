@@ -50,12 +50,12 @@ jobs:
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/')
       id: create_release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
         body: |
           ## Changes in this Release
           - Auto-generated release from tag ${{ github.ref_name }}
@@ -68,17 +68,8 @@ jobs:
           ```
         draft: false
         prerelease: false
-
-    - name: Upload Release Asset
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/Tutorverse-0.0.1-SNAPSHOT.jar
-        asset_name: tutorverse-backend-${{ github.ref_name }}.jar
-        asset_content_type: application/java-archive
+        files: |
+          target/Tutorverse-0.0.1-SNAPSHOT.jar
 
   build-and-push-docker:
     needs: build-and-release
@@ -91,8 +82,9 @@ jobs:
 
     - name: Download JAR from release
       run: |
+        mkdir -p target
         curl -L -o target/Tutorverse-0.0.1-SNAPSHOT.jar \
-          "https://github.com/${{ github.repository }}/releases/download/${{ needs.build-and-release.outputs.version }}/tutorverse-backend-${{ needs.build-and-release.outputs.version }}.jar"
+          "https://github.com/${{ github.repository }}/releases/download/${{ needs.build-and-release.outputs.version }}/Tutorverse-0.0.1-SNAPSHOT.jar"
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3

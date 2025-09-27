@@ -1,5 +1,7 @@
 name: Build and Release Java Application
-
+permissions:
+  contents: write   # ✅ allow release + upload assets
+  packages: write 
 on:
   push:
     branches: [ "Development_2.0", "main" ]

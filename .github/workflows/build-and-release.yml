@@ -6,6 +6,10 @@ on:
     tags: [ "v*" ]
   workflow_dispatch:  # Allows manual trigger
 
+permissions:
+  contents: write   # ✅ allow release + upload assets
+  packages: write  
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,35 +35,46 @@ jobs:
         path: target/Tutorverse-0.0.1-SNAPSHOT.jar
         retention-days: 30
 
-    - name: Create Release
+    - name: Rename JAR for release
       if: startsWith(github.ref, 'refs/tags/')
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cp target/Tutorverse-0.0.1-SNAPSHOT.jar tutorverse-backend-${{ github.ref_name }}.jar
+        ls -la tutorverse-backend-${{ github.ref_name }}.jar
+
+    - name: Create Release and Upload Assets
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
         body: |
-          ## Changes in this Release
-          - Auto-generated release from tag ${{ github.ref_name }}
-          - Built from commit: ${{ github.sha }}
+          ## 🚀 Release ${{ github.ref_name }}
           
-          ## Deployment
-          Download the JAR file and run:
+          **Built from commit:** `${{ github.sha }}`
+          **Build date:** ${{ github.event.head_commit.timestamp }}
+          
+          ## 📋 What's Included
+          - OAuth2 authentication with Google
+          - Environment-aware configuration  
+          - Production-ready Docker setup
+          - Automated CI/CD pipeline
+          
+          ## 🚀 Quick Deploy
           ```bash
+          # Download and run
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/tutorverse-backend-${{ github.ref_name }}.jar
           java -jar tutorverse-backend-${{ github.ref_name }}.jar
           ```
+          
+          ## 📊 Using curl
+          ```bash
+          curl -L -o app.jar https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/tutorverse-backend-${{ github.ref_name }}.jar
+          java -jar app.jar
+          ```
+        files: |
+          tutorverse-backend-${{ github.ref_name }}.jar
+        fail_on_unmatched_files: true
         draft: false
         prerelease: false
-
-    - name: Upload Release Asset
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/Tutorverse-0.0.1-SNAPSHOT.jar
-        asset_name: tutorverse-backend-${{ github.ref_name }}.jar
-        asset_content_type: application/java-archive

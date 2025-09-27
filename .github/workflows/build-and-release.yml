@@ -107,47 +107,37 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-  # deploy-to-gce:
-  #   needs: [build-and-release, build-and-push-docker]
-  #   runs-on: ubuntu-latest
-  #   if: startsWith(github.ref, 'refs/tags/')
+  deploy-to-server:
+    needs: [build-and-release, build-and-push-docker]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
 
-  #   steps:
-  #   - name: Checkout code
-  #     uses: actions/checkout@v4
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-  #   - name: Setup Google Cloud CLI
-  #     uses: google-github-actions/setup-gcloud@v1
-  #     with:
-  #       service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-  #       project_id: ${{ secrets.GCP_PROJECT_ID }}
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-  #   - name: Deploy to GCE
-  #     run: |
-  #       # SSH into GCE instance and deploy
-  #       gcloud compute ssh ${{ secrets.GCE_INSTANCE_NAME }} \
-  #         --zone=${{ secrets.GCE_ZONE }} \
-  #         --command="
-  #           # Navigate to application directory
-  #           cd /home/${{ secrets.GCE_USERNAME }}/tutorverse-backend || exit 1
-            
-  #           # Pull the latest code (optional, for docker-compose files)
-  #           git pull origin main || echo 'Git pull failed, continuing...'
-            
-  #           # Update the docker-compose.prod.yml with new version
-  #           sed -i 's|image: .*/tutorverse:.*|image: ${{ secrets.DOCKER_USERNAME }}/tutorverse:${{ needs.build-and-release.outputs.version }}|' docker-compose.prod.yml
-            
-  #           # Pull the latest Docker image
-  #           docker pull ${{ secrets.DOCKER_USERNAME }}/tutorverse:${{ needs.build-and-release.outputs.version }}
-            
-  #           # Stop existing containers
-  #           docker-compose -f docker-compose.prod.yml down
-            
-  #           # Start new containers with updated image
-  #           docker-compose -f docker-compose.prod.yml up -d
-            
-  #           # Clean up old images (optional)
-  #           docker image prune -f
-            
-  #           echo 'Deployment completed successfully!'
-  #         "
+    - name: Deploy to Server via SSH
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          # Navigate to backend directory
+          cd backend/
+          
+          # Pull the latest Docker image
+          sudo docker pull vithurshansiva/tutorverse:latest
+          
+          # Stop existing containers
+          sudo docker compose down
+          
+          # Start containers with updated image
+          sudo docker compose up -d
+          
+          echo "Deployment completed successfully!"
+          echo "Application should be accessible at: http://${{ secrets.SERVER_HOST }}:8080"
+        EOF

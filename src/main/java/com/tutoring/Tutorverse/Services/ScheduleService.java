@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -22,6 +23,67 @@ import java.time.LocalTime;
 
 @Service
 public class ScheduleService {
+
+    // Response type for upcoming session
+    public static class UpcomingSessionResponse {
+        public UUID schedule_id;
+        public UUID module_id;
+        public String tutor;
+        public String course;
+        public String Date;
+        public String time;
+        public Integer duration;
+        public Boolean active;
+
+        public UpcomingSessionResponse(UUID schedule_id, UUID module_id, String tutor, String course,String Date, String time, Integer duration, Boolean active) {
+            this.schedule_id = schedule_id;
+            this.module_id = module_id;
+            this.tutor = tutor;
+            this.course = course;
+            this.Date = Date;
+            this.time = time;
+            this.duration = duration;
+            this.active = active;
+        }
+    }
+
+    // By module
+    public List<UpcomingSessionResponse> getUpcomingSessionsByModule(LocalDate date, LocalTime time, UUID moduleId) {
+        List<Object[]> rows = scheduleRepository.getUpcomingSchedules(date, time, moduleId, null, 10);
+        List<UpcomingSessionResponse> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            result.add(new UpcomingSessionResponse(
+                (UUID) row[0], // schedule_id
+                (UUID) row[1], // module_id
+                row[8] != null ? row[8].toString() : null, // tutor_name
+                row[7] != null ? row[7].toString() : null, // course/module_name
+                row[2] != null ? row[2].toString() : null, // Date
+                row[4] != null ? row[4].toString() : null, // time
+                row[5] != null ? ((Number) row[5]).intValue() : null, // duration
+                row[3] != null ? (Boolean) row[3] : null // active
+            ));
+        }
+        return result;
+    }
+
+    // By tutor (fetch all modules for tutor, then aggregate)
+    public List<UpcomingSessionResponse> getUpcomingSessionsByTutor(LocalDate date, LocalTime time, UUID tutorId) {
+        List<Object[]> rows = scheduleRepository.getUpcomingSchedules(date, time, null, tutorId, 10);
+        List<UpcomingSessionResponse> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            result.add(new UpcomingSessionResponse(
+                (UUID) row[0], // schedule_id
+                (UUID) row[1], // module_id
+                row[8] != null ? row[8].toString() : null, // tutor_name
+                row[7] != null ? row[7].toString() : null, // course/module_name
+                row[2] != null ? row[2].toString() : null,
+                row[4] != null ? row[4].toString() : null, // time
+                row[5] != null ? ((Number) row[5]).intValue() : null, // duration
+                row[3] != null ? (Boolean) row[3] : null // active
+            ));
+        }
+        return result;
+    }
 
     @Autowired
     private ScheduleRepository scheduleRepository;

@@ -107,6 +107,12 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Tag and push Docker image as latest (redundant safety)
+      run: |
+        docker pull ${{ secrets.DOCKER_USERNAME }}/tutorverse:${{ needs.build-and-release.outputs.version }}
+        docker tag ${{ secrets.DOCKER_USERNAME }}/tutorverse:${{ needs.build-and-release.outputs.version }} ${{ secrets.DOCKER_USERNAME }}/tutorverse:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/tutorverse:latest
+
   deploy-to-server:
     needs: [build-and-release, build-and-push-docker]
     runs-on: ubuntu-latest

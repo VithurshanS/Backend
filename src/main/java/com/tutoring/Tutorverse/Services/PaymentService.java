@@ -58,7 +58,7 @@ public class PaymentService {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("checkoutUrl", checkoutUrl);
         payload.put("merchant_id", merchantId);
-        payload.put("return_url", returnUrl);
+        payload.put("return_url", returnUrl+ "/" + moduleId);
         payload.put("cancel_url", cancelUrl);
         payload.put("notify_url", notifyUrl);
         payload.put("order_id", orderId);

@@ -75,6 +75,11 @@ public class EnrollmentService {
         
     }
 
+    public boolean findIsPaidByStudentIdAndModuleId(UUID studentId, UUID moduleId) {
+        return enrollRepository.findIsPaidByStudentIdAndModuleId(studentId, moduleId).orElseThrow(() -> new RuntimeException("Enrollment not found"));
+
+    }
+
     public void unenrollFromModule(UUID enrollmentId) {
         enrollRepository.deleteById(enrollmentId);
     }

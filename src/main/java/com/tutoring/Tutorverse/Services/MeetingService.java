@@ -102,7 +102,7 @@ public class MeetingService {
             response.put("userDetails", Map.of(
                 "userId", userId,
                 "email", userEmail,
-                "name", user.getName() != null ? user.getName() : userEmail
+                "name", user.getFirstName() != null ? user.getFirstName() : userEmail
             ));
             response.put("meetingDetails", Map.of(
                 "moduleId", details.getModuleId(),
@@ -127,7 +127,7 @@ public class MeetingService {
 
             // Build context.user for Jitsi
             Map<String, Object> userContext = new HashMap<>();
-            userContext.put("name", user.getName() != null ? user.getName() : user.getEmail());
+            userContext.put("name", user.getFirstName() != null ? user.getFirstName() : user.getEmail());
             userContext.put("email", user.getEmail());
             userContext.put("id", user.getId().toString());
             userContext.put("affiliation", isModerator ? "owner" : "member");

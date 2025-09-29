@@ -9,4 +9,5 @@ import java.util.UUID;
 @Builder
 public class EnrollRequestDto {
     private UUID moduleId;
+
 }

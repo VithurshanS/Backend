@@ -44,6 +44,17 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
             String providerdId = othUser.getAttribute("sub");
             String name = othUser.getAttribute("name");
 
+            // Split the name into firstName and lastName
+            String firstName = "";
+            String lastName = "";
+            if (name != null && !name.trim().isEmpty()) {
+                String[] nameParts = name.trim().split("\\s+", 2);
+                firstName = nameParts[0];
+                if (nameParts.length > 1) {
+                    lastName = nameParts[1];
+                }
+            }
+
             HttpSession session  = request.getSession(false);
             String role;
             if(session != null){
@@ -56,12 +67,14 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
             System.out.println("=== OAuth2 User Creation Debug ===");
             System.out.println("Email: " + email);
             System.out.println("Provider ID: " + providerdId);
-            System.out.println("Name: " + name);
+            System.out.println("Full Name: " + name);
+            System.out.println("First Name: " + firstName);
+            System.out.println("Last Name: " + lastName);
             System.out.println("Role from session: " + role);
             System.out.println("Creating UserCreateDto.googleUser...");
 
-            Optional<User> newUser = userService.addUser(UserCreateDto.googleUser(email,role,providerdId,name));
-            
+            Optional<User> newUser = userService.addUser(UserCreateDto.googleUser(email,role,providerdId,firstName,lastName));
+
             System.out.println("UserService.addUser result: " + (newUser.isPresent() ? "SUCCESS" : "FAILED"));
             if (newUser.isPresent()) {
                 System.out.println("Created/Retrieved User ID: " + newUser.get().getId());

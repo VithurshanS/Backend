@@ -73,7 +73,8 @@ public class UserRegistrationIntegrationTest {
     // Test data constants
     private static final String TEST_EMAIL = "integration-test@tutorverse.com";
     private static final String TEST_PASSWORD = "SecurePassword123!";
-    private static final String TEST_NAME = "Integration Test User";
+    private static final String TEST_FIRST_NAME = "Integration";
+    private static final String TEST_LAST_NAME = "Test User";
     private static final String STUDENT_ROLE = "STUDENT";
     private static final String TUTOR_ROLE = "TUTOR";
     private static final String ADMIN_ROLE = "ADMIN";
@@ -112,7 +113,7 @@ public class UserRegistrationIntegrationTest {
                 .andReturn();
 
         // Assert: Verify complete registration flow
-        verifySuccessfulRegistration(result, TEST_EMAIL, TEST_NAME, STUDENT_ROLE);
+        verifySuccessfulRegistration(result, TEST_EMAIL, TEST_FIRST_NAME, TEST_LAST_NAME, STUDENT_ROLE);
     }
 
     @Test
@@ -130,7 +131,7 @@ public class UserRegistrationIntegrationTest {
                 .andExpect(content().string("User registered"))
                 .andReturn();
 
-        verifySuccessfulRegistration(result, tutorEmail, TEST_NAME, TUTOR_ROLE);
+        verifySuccessfulRegistration(result, tutorEmail, TEST_FIRST_NAME, TEST_LAST_NAME, TUTOR_ROLE);
     }
 
     @Test
@@ -148,7 +149,7 @@ public class UserRegistrationIntegrationTest {
                 .andExpect(content().string("User registered"))
                 .andReturn();
 
-        verifySuccessfulRegistration(result, adminEmail, TEST_NAME, ADMIN_ROLE);
+        verifySuccessfulRegistration(result, adminEmail, TEST_FIRST_NAME, TEST_LAST_NAME, ADMIN_ROLE);
     }
 
     @Test
@@ -163,7 +164,8 @@ public class UserRegistrationIntegrationTest {
         Map<String, String> duplicateData = new HashMap<>();
         duplicateData.put("email", TEST_EMAIL);
         duplicateData.put("password", "DifferentPassword456!");
-        duplicateData.put("name", "Different User");
+        duplicateData.put("firstName", "Different");
+        duplicateData.put("lastName", "User");
         duplicateData.put("role", TUTOR_ROLE);
 
         // Assert: Should succeed (returns existing user)
@@ -182,7 +184,8 @@ public class UserRegistrationIntegrationTest {
         Optional<User> originalUser = userRepo.findByEmail(TEST_EMAIL);
         assertTrue(originalUser.isPresent());
         assertEquals(STUDENT_ROLE, originalUser.get().getRole().getName(), "Role should remain unchanged");
-        assertEquals(TEST_NAME, originalUser.get().getName(), "Name should remain unchanged");
+        assertEquals(TEST_FIRST_NAME, originalUser.get().getFirstName(), "First name should remain unchanged");
+        assertEquals(TEST_LAST_NAME, originalUser.get().getLastName(), "Last name should remain unchanged");
     }
 
     @Test
@@ -227,7 +230,8 @@ public class UserRegistrationIntegrationTest {
         // Test missing email - should cause database constraint violation
         Map<String, String> missingEmail = new HashMap<>();
         missingEmail.put("password", TEST_PASSWORD);
-        missingEmail.put("name", TEST_NAME);
+        missingEmail.put("firstName", TEST_FIRST_NAME);
+        missingEmail.put("lastName", TEST_LAST_NAME);
         missingEmail.put("role", STUDENT_ROLE);
 
         try {
@@ -244,7 +248,8 @@ public class UserRegistrationIntegrationTest {
         // Test missing password - should succeed (OAuth2 users don't need passwords)
         Map<String, String> missingPassword = new HashMap<>();
         missingPassword.put("email", "test-missing-password@tutorverse.com");
-        missingPassword.put("name", TEST_NAME);
+        missingPassword.put("firstName", TEST_FIRST_NAME);
+        missingPassword.put("lastName", TEST_LAST_NAME);
         missingPassword.put("role", STUDENT_ROLE);
 
         mockMvc.perform(post("/api/register")
@@ -261,7 +266,8 @@ public class UserRegistrationIntegrationTest {
         Map<String, String> missingRole = new HashMap<>();
         missingRole.put("email", "test-missing-role@tutorverse.com");
         missingRole.put("password", TEST_PASSWORD);
-        missingRole.put("name", TEST_NAME);
+        missingRole.put("firstName", TEST_FIRST_NAME);
+        missingRole.put("lastName", TEST_LAST_NAME);
         // role is missing
 
         try {
@@ -364,7 +370,8 @@ public class UserRegistrationIntegrationTest {
                 .cookie(jwtCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.email").value(testEmail))
-                .andExpect(jsonPath("$.user.name").value(TEST_NAME))
+                .andExpect(jsonPath("$.user.firstName").value(TEST_FIRST_NAME))
+                .andExpect(jsonPath("$.user.lastName").value(TEST_LAST_NAME))
                 .andExpect(jsonPath("$.user.role").value(STUDENT_ROLE))
                 .andExpect(jsonPath("$.user.emailVerified").value(false));
     }
@@ -405,12 +412,13 @@ public class UserRegistrationIntegrationTest {
         Map<String, String> data = new HashMap<>();
         data.put("email", email);
         data.put("password", TEST_PASSWORD);
-        data.put("name", TEST_NAME);
+        data.put("firstName", TEST_FIRST_NAME);
+        data.put("lastName", TEST_LAST_NAME);
         data.put("role", role);
         return data;
     }
 
-    private void verifySuccessfulRegistration(MvcResult result, String email, String name, String role) throws Exception {
+    private void verifySuccessfulRegistration(MvcResult result, String email, String firstName, String lastName, String role) throws Exception {
         // Verify JWT cookie is set correctly
         Cookie jwtCookie = result.getResponse().getCookie("jwt_token");
         assertNotNull(jwtCookie, "JWT cookie should be set");
@@ -423,7 +431,8 @@ public class UserRegistrationIntegrationTest {
 
         User user = savedUser.get();
         assertEquals(email, user.getEmail(), "Email should match");
-        assertEquals(name, user.getName(), "Name should match");
+        assertEquals(firstName, user.getFirstName(), "First name should match");
+        assertEquals(lastName, user.getLastName(), "Last name should match");
         assertEquals(role, user.getRole().getName(), "Role should match");
         assertFalse(user.isEmailVerified(), "Email should not be verified for email registration");
         assertNotNull(user.getPassword(), "Password should be set");
@@ -457,7 +466,8 @@ public class UserRegistrationIntegrationTest {
         User user = new User();
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(TEST_PASSWORD));
-        user.setName(TEST_NAME);
+        user.setFirstName(TEST_FIRST_NAME);
+        user.setLastName(TEST_LAST_NAME);
         user.setRole(roleRepository.findByName(role).orElseThrow());
         user.setEmailVerified(false);
 

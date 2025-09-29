@@ -1,6 +1,7 @@
 package com.tutoring.Tutorverse.Controller;
 
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.tutoring.Tutorverse.Dto.UserCreateDto;
 import com.tutoring.Tutorverse.Dto.UserGetDto;
 import com.tutoring.Tutorverse.Model.Role;
@@ -12,6 +13,7 @@ import com.tutoring.Tutorverse.Services.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -29,6 +31,8 @@ import java.util.UUID;
 
 @RestController
 public class AuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -56,50 +60,7 @@ public class AuthController {
 
 
 
-    @GetMapping("/home/callback")
-    public String handleOAuth2Callback(@RequestParam("token") String token) {
-        // This endpoint handles the OAuth2 callback with the JWT token
-        return String.format("""
-            <html>
-            <head><title>Login Successful</title></head>
-            <body>
-                <h2>✅ Login Successful!</h2>
-                <p>Your JWT token has been stored in both localStorage and HTTP-only cookie for session management.</p>
-                <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-left: 4px solid #007bff;">
-                    <strong>Token:</strong> <code style="word-break: break-all;">%s</code>
-                </div>
-                
-                <h3>Session Management:</h3>
-                <ul>
-                    <li>✅ JWT stored in HTTP-only cookie (secure)</li>
-                    <li>✅ JWT stored in localStorage (for API calls)</li>
-                    <li>✅ Session will persist across page refreshes</li>
-                    <li>✅ Automatic authentication for protected pages</li>
-                </ul>
-                
-                <div style="margin-top: 20px;">
-                    <a href="/api/user/profile" style="margin-right: 10px; padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Test Protected Endpoint</a>
-                    <a href="/home" style="margin-right: 10px; padding: 10px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">Go to Home</a>
-                    <a href="/logout" style="padding: 10px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;">Logout</a>
-                </div>
-                
-                <script>
-                    // Store token in localStorage for frontend API calls
-                    localStorage.setItem('jwt_token', '%s');
-                    console.log('JWT token stored in both cookie and localStorage');
-                    
-                    // Display cookie status
-                    const cookieExists = document.cookie.split(';').some((item) => item.trim().startsWith('jwt_token='));
-                    if (cookieExists) {
-                        console.log('✅ JWT cookie successfully set');
-                    } else {
-                        console.log('⚠️ JWT cookie not detected');
-                    }
-                </script>
-            </body>
-            </html>
-            """, token, token);
-    }
+
 
     @PostMapping("/api/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body,HttpServletResponse response) {
@@ -190,21 +151,24 @@ public class AuthController {
             )
         ));
     }
-    @GetMapping("/")
-    public String home() {
-        return """
-            <h2>OAuth2 JWT Demo</h2>
-            <p>Login with different roles:</p>
-            <ul>
-                <li><a href='/oauth2/authorization/google?role=TUTOR'>Login as USER</a></li>
-                <li><a href='/oauth2/authorization/google?role=ADMIN'>Login as ADMIN</a></li>
-                <li><a href='/oauth2/authorization/google?role=STUDENT'>Login as MODERATOR</a></li>
-            </ul>
-            <p><strong>Note:</strong> Role only applies to new user registration. Existing users keep their current roles.</p>
-            """;
-    }
+    // @GetMapping("/")
+    // public String home() {
+    //     return """
+    //         <h2>OAuth2 JWT Demo</h2>
+    //         <p>Login with different roles:</p>
+    //         <ul>
+    //             <li><a href='/oauth2/authorization/google?role=TUTOR'>Login as USER</a></li>
+    //             <li><a href='/oauth2/authorization/google?role=ADMIN'>Login as ADMIN</a></li>
+    //             <li><a href='/oauth2/authorization/google?role=STUDENT'>Login as MODERATOR</a></li>
+    //         </ul>
+    //         <p><strong>Note:</strong> Role only applies to new user registration. Existing users keep their current roles.</p>
+    //         """;
+    // }
     @GetMapping("/oauth2/login/{role}")
-    public void oauthLogin(@PathVariable String role, HttpServletResponse response) throws IOException {
+    public void oauthLogin(@PathVariable String role, 
+                          @RequestParam(value = "redirect_uri", required = false) String redirectUri,
+                          HttpServletResponse response, 
+                          HttpServletRequest request) throws IOException {
         // Validate role parameter
         String upperRole = role.toUpperCase();
         if (!upperRole.equals("TUTOR") && !upperRole.equals("ADMIN") && !upperRole.equals("STUDENT")) {
@@ -212,15 +176,29 @@ public class AuthController {
             return;
         }
 
-        response.sendRedirect("/oauth2/authorization/google?role=" + upperRole);
+        // Store role and custom redirect URI in session for the success handler
+        HttpSession session = request.getSession(true);
+        session.setAttribute("signup_role", upperRole);
+        
+        // Store custom redirect URI if provided
+        if (redirectUri != null && !redirectUri.isEmpty()) {
+            session.setAttribute("custom_redirect_uri", redirectUri);
+            logger.info("Storing custom redirect URI in session: {}", redirectUri);
+        }
+        
+        logger.info("Starting OAuth2 login for role: {}", upperRole);
+        response.sendRedirect("/oauth2/authorization/google");
     }
 
     @GetMapping("/api/logout")
     public ResponseEntity<?> logout(HttpServletResponse response, HttpServletRequest request) {
         // Log current user for debugging
         UUID currentUserId = userService.getUserIdFromRequest(request);
-        System.out.println("=== LOGOUT REQUEST ===");
-        System.out.println("Current User ID: " + currentUserId);
+
+
+        logger.info("=== LOGOUT REQUEST ===");
+        logger.info("Current User ID: {}", currentUserId);
+        
 
         // Clear JWT cookie using helper method (automatically handles dev/prod)
         clearJwtCookie(response);
@@ -228,7 +206,9 @@ public class AuthController {
         // Clear Spring Security context
         SecurityContextHolder.clearContext();
 
-        System.out.println("Logout completed - cookie cleared and security context cleared");
+        
+        logger.info("Logout completed - cookie cleared and security context cleared");
+
         return ResponseEntity.ok().body("{\"message\": \"Logged out successfully\"}");
     }
     @PostMapping("/sum/post")
@@ -249,6 +229,17 @@ public class AuthController {
     @GetMapping("/api/public/test")
     public Map<String, String> publicEndpoint() {
         return Map.of("message", "This is a public endpoint");
+    }
+
+    @GetMapping("/debug/oauth2")
+    public Map<String, Object> debugOAuth2() {
+        return Map.of(
+            "message", "OAuth2 Debug Information",
+            "expected_redirect_uri", "http://localhost:8080/login/oauth2/code/google",
+            "frontend_url", frontendUrl,
+            "ssl_enabled", sslEnabled,
+            "note", "Make sure this exact redirect_uri is configured in Google Cloud Console"
+        );
     }
 
 

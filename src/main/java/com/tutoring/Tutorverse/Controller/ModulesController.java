@@ -54,9 +54,6 @@ public class ModulesController {
     @GetMapping("/get-modulesfortutor")
     public ResponseEntity<List<ModuelsDto>> getTutorModules(HttpServletRequest req){
         UUID userId = userService.getUserIdFromRequest(req);
-        if(userId == null || !userService.isTutor(userId)){
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Requires TUTOR role");
-        }
         List<ModuelsDto> modules = modulesService.getModulesByTutorId(userId);
         return ResponseEntity.ok(modules);
 

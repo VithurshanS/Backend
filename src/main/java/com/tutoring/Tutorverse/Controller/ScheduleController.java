@@ -105,7 +105,7 @@ public class ScheduleController {
             return ResponseEntity.ok(result);
         }
 
-        @PostMapping("/upcoming-by-tutor")
+    @PostMapping("/upcoming-by-tutor")
         public ResponseEntity<List<ScheduleService.UpcomingSessionResponse>> getUpcomingByTutor(HttpServletRequest req, @RequestBody Map<String, Object> params) {
             LocalDate date = params.containsKey("date") && params.get("date") != null ? LocalDate.parse(params.get("date").toString()) : LocalDate.now();
             java.time.LocalTime time = params.containsKey("time") && params.get("time") != null ? java.time.LocalTime.parse(params.get("time").toString()) : java.time.LocalTime.now();
@@ -114,6 +114,18 @@ public class ScheduleController {
                 return ResponseEntity.badRequest().build();
             }
             List<ScheduleService.UpcomingSessionResponse> result = scheduleService.getUpcomingSessionsByTutor(date, time, tutorId);
+            return ResponseEntity.ok(result);
+        }
+
+    @PostMapping("/upcoming-by-student")
+        public ResponseEntity<List<ScheduleService.UpcomingSessionResponse>> getUpcomingByStudent(HttpServletRequest req, @RequestBody Map<String, Object> params) {
+            LocalDate date = params.containsKey("date") && params.get("date") != null ? LocalDate.parse(params.get("date").toString()) : LocalDate.now();
+            java.time.LocalTime time = params.containsKey("time") && params.get("time") != null ? java.time.LocalTime.parse(params.get("time").toString()) : java.time.LocalTime.now();
+            UUID studentId = requireStudent(req).getId();
+            if (studentId == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<ScheduleService.UpcomingSessionResponse> result = scheduleService.getUpcomingSessionsByStudent(date, time, studentId);
             return ResponseEntity.ok(result);
         }
     
@@ -239,6 +251,25 @@ public class ScheduleController {
         User user = userOpt.get();
         if (!"TUTOR".equals(user.getRole().getName())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only tutors can manage schedules");
+        }
+
+        return user;
+    }
+    
+    private User requireStudent(HttpServletRequest req) {
+        UUID userId = userService.getUserIdFromRequest(req);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or invalid authorization token");
+        }
+
+        Optional<User> userOpt = userRepo.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
+        }
+
+        User user = userOpt.get();
+        if (!"STUDENT".equals(user.getRole().getName())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only students can manage schedules");
         }
 
         return user;

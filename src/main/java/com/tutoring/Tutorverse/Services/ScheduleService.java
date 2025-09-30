@@ -85,6 +85,24 @@ public class ScheduleService {
         return result;
     }
 
+    public List<UpcomingSessionResponse> getUpcomingSessionsByStudent(LocalDate date, LocalTime time, UUID studentId) {
+        List<Object[]> rows = scheduleRepository.getUpcomingSchedulesForStudent(date, time, null, studentId, 10);
+        List<UpcomingSessionResponse> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            result.add(new UpcomingSessionResponse(
+                (UUID) row[0], // schedule_id
+                (UUID) row[1], // module_id
+                row[8] != null ? row[8].toString() : null, // tutor_name
+                row[7] != null ? row[7].toString() : null, // course/module_name
+                row[2] != null ? row[2].toString() : null,
+                row[4] != null ? row[4].toString() : null, // time
+                row[5] != null ? ((Number) row[5]).intValue() : null, // duration
+                row[3] != null ? (Boolean) row[3] : null // active
+            ));
+        }
+        return result;
+    }
+
     @Autowired
     private ScheduleRepository scheduleRepository;
 

@@ -50,4 +50,13 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, UUID> 
         @Param("tutorId") UUID tutorId,
         @Param("limitCount") Integer limitCount
     );
+
+    @Query(value = "SELECT * FROM get_upcoming_schedules_student(:fromDate, :fromTime, :modId, :stuId, :limitCount)", nativeQuery = true)
+    List<Object[]> getUpcomingSchedulesForStudent(
+        @Param("fromDate") LocalDate fromDate,
+        @Param("fromTime") LocalTime fromTime,
+        @Param("modId") UUID modId,
+        @Param("stuId") UUID stuId,
+        @Param("limitCount") Integer limitCount
+    );
 }

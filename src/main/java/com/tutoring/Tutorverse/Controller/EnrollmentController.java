@@ -14,10 +14,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.tutoring.Tutorverse.Dto.EnrollCreateDto;
 import com.tutoring.Tutorverse.Services.EnrollmentService;
+import com.tutoring.Tutorverse.Services.JwtServices;
+
 
 @RestController
 @RequestMapping("/api/enrollment")
 public class EnrollmentController {
+
+    @Autowired
+	private JwtServices jwtServices;
 
     @Autowired
     private EnrollmentService enrollmentService;
@@ -68,6 +73,32 @@ public class EnrollmentController {
         }
     }
 
+
+    @GetMapping("/getenrollmentid")
+    public ResponseEntity<String> getEnrollmentId(@RequestParam String Module_Id,@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        try {
+            if (authHeader == null || authHeader.isBlank() || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.badRequest().body("Missing or invalid Authorization header");
+            }
+            String token = authHeader.substring(7);
+            if (!jwtServices.validateJwtToken(token)) {
+                return ResponseEntity.badRequest().body("Invalid token");
+            }
+            UUID userId = jwtServices.getUserIdFromJwtToken(token);
+            // Fetch user to get name
+            UUID enrollmentId = enrollmentService.getEnrollmentId(userId,UUID.fromString(Module_Id));
+            if (enrollmentId == null) {
+                return ResponseEntity.status(404).body("Enrollment not found");
+            }
+            return ResponseEntity.ok(enrollmentId.toString());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(500).body("Error fetching enrollment ID: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
+        }
+    }
+    
+
     @GetMapping("/get-enrollment-details/{moduleId}")
     public ResponseEntity<Boolean> getEnrollmentDetails(@PathVariable UUID moduleId, HttpServletRequest req) {
         try {
@@ -80,6 +111,7 @@ public class EnrollmentController {
             return ResponseEntity.status(500).body(false);
         }
     }
+
 
 
 }

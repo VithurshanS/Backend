@@ -109,6 +109,8 @@ public class ScheduleController {
         public ResponseEntity<List<ScheduleService.UpcomingSessionResponse>> getUpcomingByTutor(HttpServletRequest req, @RequestBody Map<String, Object> params) {
             LocalDate date = params.containsKey("date") && params.get("date") != null ? LocalDate.parse(params.get("date").toString()) : LocalDate.now();
             java.time.LocalTime time = params.containsKey("time") && params.get("time") != null ? java.time.LocalTime.parse(params.get("time").toString()) : java.time.LocalTime.now();
+            org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ScheduleController.class);
+            logger.info("Calculating upcoming sessions for tutor. Date: {}, Time: {}", date, time);
             UUID tutorId = requireTutor(req).getId();
             if (tutorId == null) {
                 return ResponseEntity.badRequest().build();

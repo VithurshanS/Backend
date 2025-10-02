@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 @RestController
 @RequestMapping("/api/schedules")
@@ -90,6 +93,30 @@ public class ScheduleController {
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
         }
     }
+    @PostMapping("/upcoming-by-module")
+        public ResponseEntity<List<ScheduleService.UpcomingSessionResponse>> getUpcomingByModule(@RequestBody Map<String, Object> params) {
+            LocalDate date = params.containsKey("date") && params.get("date") != null ? LocalDate.parse(params.get("date").toString()) : LocalDate.now();
+            java.time.LocalTime time = params.containsKey("time") && params.get("time") != null ? java.time.LocalTime.parse(params.get("time").toString()) : java.time.LocalTime.now();
+            UUID moduleId = params.containsKey("moduleId") && params.get("moduleId") != null && !params.get("moduleId").toString().isEmpty() ? UUID.fromString(params.get("moduleId").toString()) : null;
+            if (moduleId == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<ScheduleService.UpcomingSessionResponse> result = scheduleService.getUpcomingSessionsByModule(date, time, moduleId);
+            return ResponseEntity.ok(result);
+        }
+
+        @PostMapping("/upcoming-by-tutor")
+        public ResponseEntity<List<ScheduleService.UpcomingSessionResponse>> getUpcomingByTutor(HttpServletRequest req, @RequestBody Map<String, Object> params) {
+            LocalDate date = params.containsKey("date") && params.get("date") != null ? LocalDate.parse(params.get("date").toString()) : LocalDate.now();
+            java.time.LocalTime time = params.containsKey("time") && params.get("time") != null ? java.time.LocalTime.parse(params.get("time").toString()) : java.time.LocalTime.now();
+            UUID tutorId = requireTutor(req).getId();
+            if (tutorId == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<ScheduleService.UpcomingSessionResponse> result = scheduleService.getUpcomingSessionsByTutor(date, time, tutorId);
+            return ResponseEntity.ok(result);
+        }
+    
 
     @PutMapping("/{scheduleId}")
     public ResponseEntity<?> updateSchedule(@PathVariable UUID scheduleId,

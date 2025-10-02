@@ -224,3 +224,78 @@ COMMENT ON COLUMN schedules.week_number IS '0=specific date, 1-7=weekly (Mon-Sun
 COMMENT ON COLUMN schedules.duration IS 'Duration in minutes';
 COMMENT ON COLUMN modules.duration IS 'Total module duration as PostgreSQL interval';
 COMMENT ON COLUMN modules.average_ratings IS 'Average rating from 0.0 to 5.0';
+
+
+CREATE OR REPLACE FUNCTION get_upcoming_schedules(
+    from_date DATE DEFAULT CURRENT_DATE,
+    from_time TIME DEFAULT CURRENT_TIME,
+    mod_id UUID DEFAULT NULL,
+    limit_count INTEGER DEFAULT 10
+) RETURNS TABLE (
+    schedule_id UUID,
+    module_id UUID,
+    date DATE,
+    "time" TIME,
+    duration INTEGER,
+    week_number INTEGER,
+    module_name VARCHAR,
+    tutor_name VARCHAR,
+    schedule_type VARCHAR
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        s.schedule_id,
+        s.module_id,
+        CASE 
+            WHEN s.week_number = 0 THEN s.date
+            WHEN s.week_number BETWEEN 1 AND 7 THEN 
+                CASE 
+                    WHEN s.date > from_date THEN s.date
+                    ELSE (from_date + ((s.week_number - EXTRACT(ISODOW FROM from_date)::int + 7) % 7)::int)::DATE
+                END
+            WHEN s.week_number = 8 THEN 
+                CASE 
+                    WHEN from_time < s."time" AND s.date <= from_date THEN from_date
+                    ELSE from_date + 1
+                END
+            ELSE s.date
+        END as calculated_date,
+        s."time",
+        s.duration,
+        s.week_number,
+        m.name as module_name,
+        COALESCE(tp.first_name || ' ' || tp.last_name, tp.last_name, u.name)::VARCHAR as tutor_name,
+		(CASE 
+		    WHEN s.week_number = 0 THEN 'One-time'
+		    WHEN s.week_number BETWEEN 1 AND 7 THEN 'Weekly'
+		    WHEN s.week_number = 8 THEN 'Daily'
+		    ELSE 'Unknown'
+		END)::VARCHAR as schedule_type
+    FROM schedules s
+    INNER JOIN modules m ON s.module_id = m.module_id
+    INNER JOIN users u ON m.tutor_id = u.id
+    LEFT JOIN tutor tp ON u.id = tp.tutor_id
+    WHERE 
+        (mod_id IS NULL OR s.module_id = mod_id)
+        AND (
+            (s.week_number = 0 
+             AND (s.date > from_date 
+                  OR (s.date = from_date AND s."time" > from_time)))
+            OR (s.week_number BETWEEN 1 AND 7
+                AND (s.date > from_date 
+                     OR (s.date <= from_date 
+                         AND (EXTRACT(ISODOW FROM from_date)::int < s.week_number
+                              OR (EXTRACT(ISODOW FROM from_date)::int = s.week_number 
+                                  AND from_time < s."time")))))
+            OR (s.week_number = 8
+                AND (s.date > from_date 
+                     OR (s.date <= from_date AND s."time" > from_time)))
+        )
+    ORDER BY 
+        calculated_date ASC, 
+        s."time" ASC,
+        s.schedule_id
+    LIMIT limit_count;
+END;
+$$ LANGUAGE plpgsql;

@@ -38,6 +38,7 @@ public class EnrollmentService {
         EnrollmentEntity enrollment = new EnrollmentEntity();
         enrollment.setStudent(student);
         enrollment.setModule(module);
+        enrollment.setPaid(false);
         enrollRepository.save(enrollment);
         return "Enrolled Successfully " + enrollment.getEnrolmentId();
     }
@@ -74,6 +75,11 @@ public class EnrollmentService {
         
     }
 
+    public boolean findIsPaidByStudentIdAndModuleId(UUID studentId, UUID moduleId) {
+        return enrollRepository.findIsPaidByStudentIdAndModuleId(studentId, moduleId).orElseThrow(() -> new RuntimeException("Enrollment not found"));
+
+    }
+
     public void unenrollFromModule(UUID enrollmentId) {
         enrollRepository.deleteById(enrollmentId);
     }
@@ -88,6 +94,11 @@ public class EnrollmentService {
 
     public List<String> getStudentEmailsByModuleId(UUID moduleId) {
         return emailRepository.findEmailsByModuleId(moduleId);
+    }
+
+    public UUID getEnrollmentId(UUID userId, UUID fromString) {
+        EnrollmentEntity enrollment = enrollRepository.findByStudentStudentIdAndModuleModuleId(userId, fromString);
+        return enrollment != null ? enrollment.getEnrolmentId() : null;
     }
 
 

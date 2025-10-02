@@ -31,8 +31,14 @@ public class TutorEntity {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(name = "phone_no", nullable = false, unique = true)
-    private String phoneNo;
+    @Column(name = "address", nullable = false)
+    private String address;
+
+    @Column(name = "city", nullable = false)
+    private String city;
+
+    @Column(name = "country", nullable = false)
+    private String country;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", nullable = false)
@@ -40,6 +46,9 @@ public class TutorEntity {
 
     @Column(name = "dob")
     private LocalDate dob;
+
+    @Column(name = "phone_no", nullable = false, unique = true)
+    private String phoneNo;
 
     @Column(name = "last_accessed", nullable = true)
     private LocalDate lastAccessed;

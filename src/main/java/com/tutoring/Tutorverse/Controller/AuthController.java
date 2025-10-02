@@ -20,8 +20,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.util.UUID;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 public class AuthController {
@@ -68,9 +67,10 @@ public class AuthController {
         String email = body.get("email");
         String password = body.get("password");
         String role = body.get("role");
-        String name = body.get("name");
+        String firstName = body.get("first_name");
+        String lastName = body.get("last_name");
 
-        Optional<User> addedUser = userService.addUser(UserCreateDto.emailUser(email,name,password,role));
+        Optional<User> addedUser = userService.addUser(UserCreateDto.emailUser(email,firstName,lastName,password,role));
 
 
         if (addedUser.isEmpty()) {
@@ -81,7 +81,7 @@ public class AuthController {
 
         // Store JWT in cookie using helper method (automatically handles dev/prod)
         setJwtCookie(response, token);
-        
+
         return ResponseEntity.ok("User registered");
     }
 
@@ -145,7 +145,8 @@ public class AuthController {
             "message", "Login successfulo",
             "user", Map.of(
                 "email", user.getEmail(),
-                "name", user.getName() != null ? user.getName() : "",
+                "firstName", user.getFirstName() != null ? user.getFirstName() : "",
+                "lastName", user.getLastName() != null ? user.getLastName() : "",
                 "role", user.getRole().getName()
             )
         ));
@@ -193,16 +194,21 @@ public class AuthController {
     public ResponseEntity<?> logout(HttpServletResponse response, HttpServletRequest request) {
         // Log current user for debugging
         UUID currentUserId = userService.getUserIdFromRequest(request);
+
+
         logger.info("=== LOGOUT REQUEST ===");
         logger.info("Current User ID: {}", currentUserId);
         
+
         // Clear JWT cookie using helper method (automatically handles dev/prod)
         clearJwtCookie(response);
-        
+
         // Clear Spring Security context
         SecurityContextHolder.clearContext();
+
         
         logger.info("Logout completed - cookie cleared and security context cleared");
+
         return ResponseEntity.ok().body("{\"message\": \"Logged out successfully\"}");
     }
     @PostMapping("/sum/post")
@@ -270,7 +276,7 @@ public class AuthController {
     private void setJwtCookie(HttpServletResponse response, String token) {
         // Determine if we're in production (HTTPS) or development
         boolean isProduction = sslEnabled || frontendUrl.startsWith("https://");
-        
+
         if (isProduction) {
             // Production configuration: Secure, SameSite=None, cross-domain
             response.setHeader("Set-Cookie", String.format(
@@ -293,14 +299,14 @@ public class AuthController {
      */
     private void clearJwtCookie(HttpServletResponse response) {
         boolean isProduction = sslEnabled || frontendUrl.startsWith("https://");
-        
+
         if (isProduction) {
             // Production: Clear secure cookie with multiple variations to ensure cleanup
-            response.addHeader("Set-Cookie", 
+            response.addHeader("Set-Cookie",
                 "jwt_token=; Path=/; Max-Age=0; Secure; SameSite=None; Domain=.shancloudservice.com"
             );
             // Also clear without domain to catch any cookies set without domain
-            response.addHeader("Set-Cookie", 
+            response.addHeader("Set-Cookie",
                 "jwt_token=; Path=/; Max-Age=0; Secure; SameSite=None"
             );
         } else {
@@ -311,7 +317,7 @@ public class AuthController {
             jwtCookie.setPath("/");
             jwtCookie.setMaxAge(0);
             response.addCookie(jwtCookie);
-            
+
             // Also add Set-Cookie header as backup
             response.addHeader("Set-Cookie", "jwt_token=; Path=/; Max-Age=0");
         }

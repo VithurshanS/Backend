@@ -42,6 +42,9 @@ public class TutorProfileService {
                 .portfolio(dto.getPortfolio())
                 .bio(dto.getBio())
                 .image(dto.getImage())
+                .address(dto.getAddress())
+                .city(dto.getCity())
+                .country(dto.getCountry())
                 .build();
         return tutorRepository.save(tutor);
     }
@@ -63,6 +66,9 @@ public class TutorProfileService {
         existingProfile.setPortfolio(dto.getPortfolio());
         existingProfile.setBio(dto.getBio());
         existingProfile.setImage(dto.getImage());
+        existingProfile.setAddress(dto.getAddress());
+        existingProfile.setCity(dto.getCity());
+        existingProfile.setCountry(dto.getCountry());
         return tutorRepository.save(existingProfile);
     }
 
@@ -96,6 +102,9 @@ public class TutorProfileService {
                 .portfolio(tutor.getPortfolio())
                 .bio(tutor.getBio())
                 .image(tutor.getImage())
+                .address(tutor.getAddress())
+                .city(tutor.getCity())
+                .country(tutor.getCountry())
                 .build();
     }
 
@@ -111,4 +120,4 @@ public class TutorProfileService {
     }
 
 
-}    
+}

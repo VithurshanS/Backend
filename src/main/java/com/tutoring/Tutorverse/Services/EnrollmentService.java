@@ -96,6 +96,11 @@ public class EnrollmentService {
         return emailRepository.findEmailsByModuleId(moduleId);
     }
 
+    public UUID getEnrollmentId(UUID userId, UUID fromString) {
+        EnrollmentEntity enrollment = enrollRepository.findByStudentStudentIdAndModuleModuleId(userId, fromString);
+        return enrollment != null ? enrollment.getEnrolmentId() : null;
+    }
+
 
 
 }

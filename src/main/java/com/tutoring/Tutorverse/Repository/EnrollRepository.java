@@ -12,7 +12,9 @@ import org.springframework.stereotype.Repository;
 public interface EnrollRepository extends JpaRepository<EnrollmentEntity, UUID> {
     List<EnrollmentEntity> findByStudentStudentId(UUID studentID);
     boolean existsByStudentStudentIdAndModuleModuleId(UUID studentId, UUID moduleId);
+    EnrollmentEntity findByStudentStudentIdAndModuleModuleId(UUID userId, UUID fromString);
     Optional<EnrollmentEntity> findByStudentStudentIdAndModuleModuleId(UUID studentId, UUID moduleId);
+
 
     // Fixed method to get isPaid value
     @Query("SELECT e.isPaid FROM EnrollmentEntity e WHERE e.student.studentId = :studentId AND e.module.moduleId = :moduleId")

@@ -19,7 +19,7 @@ public class ModuelsDto {
     private String domain;
     private BigDecimal averageRatings;
     private BigDecimal fee;
-    private Long duration;
+    private Duration duration;
     private String status;
 
 }

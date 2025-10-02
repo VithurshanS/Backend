@@ -38,6 +38,7 @@ public class EnrollmentService {
         EnrollmentEntity enrollment = new EnrollmentEntity();
         enrollment.setStudent(student);
         enrollment.setModule(module);
+        enrollment.setPaid(false);
         enrollRepository.save(enrollment);
         return "Enrolled Successfully " + enrollment.getEnrolmentId();
     }
@@ -72,6 +73,11 @@ public class EnrollmentService {
     private StudentEntity findStudentById(UUID studentId) {
         return studentProfileRepository.findById(studentId).orElseThrow(() -> new RuntimeException("Student not found"));
         
+    }
+
+    public boolean findIsPaidByStudentIdAndModuleId(UUID studentId, UUID moduleId) {
+        return enrollRepository.findIsPaidByStudentIdAndModuleId(studentId, moduleId).orElseThrow(() -> new RuntimeException("Enrollment not found"));
+
     }
 
     public void unenrollFromModule(UUID enrollmentId) {

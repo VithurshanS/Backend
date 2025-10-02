@@ -3,7 +3,8 @@ package com.tutoring.Tutorverse.Dto;
 public class UserCreateDto {
     private String email;
     private String password;
-    private String name;
+    private String firstName;
+    private String lastName;
     private String role;
     private String providerId;
     private boolean isEmailVerified;
@@ -11,21 +12,22 @@ public class UserCreateDto {
 
     public UserCreateDto() {}
 
-    public UserCreateDto(String email, String password, String name, String role, String providerId, boolean isEmailVerified) {
+    public UserCreateDto(String email, String password, String firstName, String lastName, String role, String providerId, boolean isEmailVerified) {
         this.email = email;
         this.password = password;
-        this.name = name;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.role = role;
         this.providerId = providerId;
         this.isEmailVerified = isEmailVerified;
     }
 
-    public static UserCreateDto emailUser(String email,String name,String password,String role){
-        return new UserCreateDto(email,password,name,role,null,false);
+    public static UserCreateDto emailUser(String email, String firstName, String lastName, String password, String role){
+        return new UserCreateDto(email, password, firstName, lastName, role, null, false);
     }
 
-    public static UserCreateDto googleUser(String email,String role,String providerId,String name){
-        return new UserCreateDto(email,null,name,role,providerId,true);
+    public static UserCreateDto googleUser(String email, String role, String providerId, String firstName, String lastName){
+        return new UserCreateDto(email, null, firstName, lastName, role, providerId, true);
     }
 
 
@@ -47,12 +49,20 @@ public class UserCreateDto {
         this.password = password;
     }
 
-    public String getName() {
-        return name;
+    public String getFirstName() {
+        return firstName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getRole() {

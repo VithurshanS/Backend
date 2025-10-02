@@ -2,7 +2,7 @@ package com.tutoring.Tutorverse.Controller;
 
 import com.tutoring.Tutorverse.Dto.ScheduleDto;
 import com.tutoring.Tutorverse.Services.ScheduleService;
-import com.tutoring.Tutorverse.Services.JwtServices;
+import com.tutoring.Tutorverse.Services.UserService;
 import com.tutoring.Tutorverse.Repository.userRepository;
 import com.tutoring.Tutorverse.Repository.ModulesRepository;
 import com.tutoring.Tutorverse.Model.User;
@@ -13,11 +13,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 @RestController
 @RequestMapping("/api/schedules")
@@ -27,7 +31,7 @@ public class ScheduleController {
     private ScheduleService scheduleService;
 
     @Autowired
-    private JwtServices jwtServices;
+    private UserService userService;
 
     @Autowired
     private userRepository userRepo;
@@ -36,10 +40,9 @@ public class ScheduleController {
     private ModulesRepository modulesRepository;
 
     @PostMapping("/create")
-    public ResponseEntity<?> createSchedule(@RequestBody ScheduleDto scheduleDto,
-                                          @RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<?> createSchedule(@RequestBody ScheduleDto scheduleDto, HttpServletRequest req) {
         try {
-            User tutor = requireTutor(authHeader);
+            User tutor = requireTutor(req);
 
             // Verify that the module belongs to the authenticated tutor
             Optional<ModuelsEntity> moduleOpt = modulesRepository.findById(scheduleDto.getModuleId());
@@ -81,22 +84,46 @@ public class ScheduleController {
     }
 
     @GetMapping("/my-schedules")
-    public ResponseEntity<?> getMySchedules(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<?> getMySchedules(HttpServletRequest req) {
         try {
-            User tutor = requireTutor(authHeader);
+            User tutor = requireTutor(req);
             List<ScheduleDto> schedules = scheduleService.getSchedulesByTutorId(tutor.getId());
             return ResponseEntity.ok(schedules);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
         }
     }
+    @PostMapping("/upcoming-by-module")
+        public ResponseEntity<List<ScheduleService.UpcomingSessionResponse>> getUpcomingByModule(@RequestBody Map<String, Object> params) {
+            LocalDate date = params.containsKey("date") && params.get("date") != null ? LocalDate.parse(params.get("date").toString()) : LocalDate.now();
+            java.time.LocalTime time = params.containsKey("time") && params.get("time") != null ? java.time.LocalTime.parse(params.get("time").toString()) : java.time.LocalTime.now();
+            UUID moduleId = params.containsKey("moduleId") && params.get("moduleId") != null && !params.get("moduleId").toString().isEmpty() ? UUID.fromString(params.get("moduleId").toString()) : null;
+            if (moduleId == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<ScheduleService.UpcomingSessionResponse> result = scheduleService.getUpcomingSessionsByModule(date, time, moduleId);
+            return ResponseEntity.ok(result);
+        }
+
+        @PostMapping("/upcoming-by-tutor")
+        public ResponseEntity<List<ScheduleService.UpcomingSessionResponse>> getUpcomingByTutor(HttpServletRequest req, @RequestBody Map<String, Object> params) {
+            LocalDate date = params.containsKey("date") && params.get("date") != null ? LocalDate.parse(params.get("date").toString()) : LocalDate.now();
+            java.time.LocalTime time = params.containsKey("time") && params.get("time") != null ? java.time.LocalTime.parse(params.get("time").toString()) : java.time.LocalTime.now();
+            UUID tutorId = requireTutor(req).getId();
+            if (tutorId == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<ScheduleService.UpcomingSessionResponse> result = scheduleService.getUpcomingSessionsByTutor(date, time, tutorId);
+            return ResponseEntity.ok(result);
+        }
+    
 
     @PutMapping("/{scheduleId}")
     public ResponseEntity<?> updateSchedule(@PathVariable UUID scheduleId,
                                           @RequestBody ScheduleDto scheduleDto,
-                                          @RequestHeader(value = "Authorization", required = false) String authHeader) {
+                                          HttpServletRequest req) {
         try {
-            User tutor = requireTutor(authHeader);
+            User tutor = requireTutor(req);
 
             // Verify ownership through module
             Optional<ModuelsEntity> moduleOpt = modulesRepository.findById(scheduleDto.getModuleId());
@@ -120,13 +147,10 @@ public class ScheduleController {
     }
 
     @DeleteMapping("/{scheduleId}")
-    public ResponseEntity<?> deleteSchedule(@PathVariable UUID scheduleId,
-                                          @RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<?> deleteSchedule(@PathVariable UUID scheduleId, HttpServletRequest req) {
         try {
-            User tutor = requireTutor(authHeader);
+            User tutor = requireTutor(req);
 
-            // Here you would need to verify ownership, but for simplicity, we'll allow any tutor to delete
-            // In production, you should verify the schedule belongs to the tutor
 
             scheduleService.deleteSchedule(scheduleId);
             return ResponseEntity.noContent().build();
@@ -138,14 +162,11 @@ public class ScheduleController {
         }
     }
 
-    // Test endpoint specifically for conflict testing
     @PostMapping("/test-conflict")
-    public ResponseEntity<?> testScheduleConflict(@RequestBody ScheduleDto scheduleDto,
-                                                @RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<?> testScheduleConflict(@RequestBody ScheduleDto scheduleDto, HttpServletRequest req) {
         try {
-            User tutor = requireTutor(authHeader);
+            User tutor = requireTutor(req);
 
-            // Verify module ownership
             Optional<ModuelsEntity> moduleOpt = modulesRepository.findById(scheduleDto.getModuleId());
             if (moduleOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Module not found");
@@ -204,19 +225,13 @@ public class ScheduleController {
 //        }
 //    }
 
-    private User requireTutor(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+    private User requireTutor(HttpServletRequest req) {
+        UUID userId = userService.getUserIdFromRequest(req);
+        if (userId == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or invalid authorization token");
         }
 
-        String token = authHeader.substring(7);
-        if (!jwtServices.validateJwtToken(token)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
-        }
-
-        String email = jwtServices.getEmailFromJwtToken(token);
-        Optional<User> userOpt = userRepo.findByEmail(email);
-
+        Optional<User> userOpt = userRepo.findById(userId);
         if (userOpt.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
         }

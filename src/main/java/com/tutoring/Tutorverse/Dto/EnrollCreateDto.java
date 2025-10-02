@@ -10,4 +10,5 @@ import java.util.UUID;
 public class EnrollCreateDto {
     private UUID studentId;
     private UUID moduleId;
+    private boolean isPaid;
 }

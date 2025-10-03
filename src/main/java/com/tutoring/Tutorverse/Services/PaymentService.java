@@ -56,7 +56,7 @@ public class PaymentService {
         payload.put("checkoutUrl", checkoutUrl);
         payload.put("merchant_id", merchantId);
         payload.put("return_url", returnUrl+ "/" + moduleId);
-        payload.put("cancel_url", cancelUrl);
+        payload.put("cancel_url", cancelUrl+ "/" + moduleId);
         payload.put("notify_url", notifyUrl);
         payload.put("order_id", orderId);
         payload.put("items", "Module Purchase");

@@ -6,6 +6,8 @@ import com.tutoring.Tutorverse.Dto.UserCreateDto;
 import com.tutoring.Tutorverse.Dto.UserGetDto;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.userRepository;
+import com.tutoring.Tutorverse.Repository.TutorProfileRepository;
+import com.tutoring.Tutorverse.Repository.StudentProfileRepository;
 import com.tutoring.Tutorverse.Services.JwtServices;
 import com.tutoring.Tutorverse.Services.UserService;
 import jakarta.servlet.http.Cookie;
@@ -23,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +45,10 @@ public class AuthController {
     private userRepository userRepo;
     @Autowired
     private UserService userService;
+    @Autowired
+    private TutorProfileRepository tutorProfileRepository;
+    @Autowired
+    private StudentProfileRepository studentProfileRepository;
 
     @Autowired
     private JwtServices jwtServices;
@@ -313,6 +320,41 @@ public class AuthController {
 
             // Also add Set-Cookie header as backup
             response.addHeader("Set-Cookie", "jwt_token=; Path=/; Max-Age=0");
+        }
+    }
+
+    @GetMapping("/api/profile-status")
+    public ResponseEntity<?> checkProfileCompletion(HttpServletRequest request) {
+        try {
+            // Get user ID from JWT token
+            UUID userId = userService.getUserIdFromRequest(request);
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
+            }
+
+            // Check if user exists
+            Optional<User> user = userRepo.findById(userId);
+            if (user.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+
+            // Check if tutor profile exists
+            boolean hasTutorProfile = tutorProfileRepository.existsById(userId);
+            
+            // Check if student profile exists
+            boolean hasStudentProfile = studentProfileRepository.existsById(userId);
+
+            // Create response object
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userId);
+            response.put("hasTutorProfile", hasTutorProfile);
+            response.put("hasStudentProfile", hasStudentProfile);
+            response.put("hasAnyProfile", hasTutorProfile || hasStudentProfile);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error checking profile completion for user {}: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error checking profile status");
         }
     }
 }

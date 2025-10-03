@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins ="https://fronttest.shancloudservice.com")
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {

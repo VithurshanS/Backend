@@ -73,7 +73,7 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
             System.out.println("Role from session: " + role);
             System.out.println("Creating UserCreateDto.googleUser...");
 
-            Optional<User> newUser = userService.addUser(UserCreateDto.googleUser(email,role,providerdId,firstName,lastName));
+            Optional<User> newUser = userService.addUser(UserCreateDto.googleUser(email,role,providerdId,name));
 
             System.out.println("UserService.addUser result: " + (newUser.isPresent() ? "SUCCESS" : "FAILED"));
             if (newUser.isPresent()) {

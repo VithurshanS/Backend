@@ -51,7 +51,7 @@ public class RatingController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
             }
             // Overwrite any client-provided studentName to avoid spoofing
-            ratingCreateDto.setStudentName(user.getName());
+            ratingCreateDto.setStudentName(user.getName() != null ? user.getName() : "");
 
             String message = ratingService.createRating(ratingCreateDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(message);

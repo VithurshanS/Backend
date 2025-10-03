@@ -4,26 +4,18 @@ import com.sendgrid.*;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import com.sendgrid.*;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-
-import com.tutoring.Tutorverse.Services.EnrollmentService;
 
 @Service
 public class SendgridService {
 
     @Value("${sendgrid.api.key}")
     private String sendGridApiKey;
-
-
-    @Autowired
-    private EnrollmentService enrollmentService;
 
     public void sendContentUploadEmail(String toEmail, String subject, String contentText) throws IOException {
         Email from = new Email("tiran2018v@gmail.com"); // must be verified in SendGrid

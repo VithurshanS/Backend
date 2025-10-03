@@ -97,7 +97,7 @@ public class EnrollmentService {
     }
 
     public UUID getEnrollmentId(UUID userId, UUID fromString) {
-        EnrollmentEntity enrollment = enrollRepository.findByStudentStudentIdAndModuleModuleId(userId, fromString);
+        EnrollmentEntity enrollment = enrollRepository.findByStudentStudentIdAndModuleModuleId(userId, fromString).orElse(null);
         return enrollment != null ? enrollment.getEnrolmentId() : null;
     }
 

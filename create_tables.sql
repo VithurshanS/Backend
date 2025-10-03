@@ -132,20 +132,19 @@ CREATE TRIGGER update_schedules_updated_at BEFORE UPDATE ON schedules
 -- BUSINESS LOGIC TRIGGERS
 -- =============================================
 
--- Schedule Clash Prevention Trigger
+-- Schedule Clash Prevention Trigger with Boundary Case Detection
 CREATE OR REPLACE FUNCTION check_schedule_clash()
 RETURNS TRIGGER AS $$
 DECLARE
     clash_count INT;
-    new_t0 TIME;
-    new_t1 TIME;
-    new_t2 TIME;
-    tm TIME := '12:00:00'::TIME;
+    new_start_time TIME;
+    new_end_time TIME;
+    existing_start_time TIME;
+    existing_end_time TIME;
 BEGIN
-    -- Calculate time boundaries for new schedule
-    new_t0 := NEW.time - interval '1 hour';
-    new_t1 := NEW.time;
-    new_t2 := NEW.time + interval '1 hour';
+    -- Calculate actual start and end times for the new schedule
+    new_start_time := NEW.time;
+    new_end_time := NEW.time + (NEW.duration || ' minutes')::interval;
 
     SELECT COUNT(*)
     INTO clash_count
@@ -159,159 +158,64 @@ BEGIN
       -- exclude current schedule on update
       AND s.schedule_id != COALESCE(NEW.schedule_id, '00000000-0000-0000-0000-000000000000'::uuid)
       AND (
-          -- Check for time overlap based on schedule types
+          -- Schedule type matching conditions
           (
-              -- Both are daily schedules (week_number = 8)
+              -- One-time schedules: exact date match
+              (NEW.week_number = 0 AND s.week_number = 0 AND NEW.date = s.date)
+          )
+          OR (
+              -- Weekly schedules: same weekday
+              (NEW.week_number BETWEEN 1 AND 7 AND s.week_number BETWEEN 1 AND 7 
+               AND NEW.week_number = s.week_number)
+          )
+          OR (
+              -- Daily schedules: always clash potential
               (NEW.week_number = 8 AND s.week_number = 8)
-              AND (
-                  -- Case 1: Normal time ranges (no overnight)
-                  (new_t0 < new_t2 AND s.time - interval '1 hour' < s.time + interval '1 hour')
-                  AND (
-                      (new_t0 <= s.time + interval '1 hour' AND new_t2 >= s.time - interval '1 hour')
-                      AND (NEW.date <= s.date OR s.date <= NEW.date)
-                  )
-                  -- Case 2: NEW schedule crosses midnight
-                  OR (new_t0 >= new_t2 AND s.time - interval '1 hour' < s.time + interval '1 hour')
-                  AND (
-                      (tm > new_t1 AND (
-                          (s.time - interval '1 hour' <= new_t2 AND s.date >= NEW.date - 1)
-                          OR (s.time + interval '1 hour' >= new_t0 AND s.date <= NEW.date + 1)
-                      ))
-                      OR (tm < new_t1 AND (
-                          (s.time + interval '1 hour' >= new_t0 AND s.date <= NEW.date)
-                          OR (s.time - interval '1 hour' <= new_t2 AND s.date >= NEW.date - 1)
-                      ))
-                  )
-                  -- Case 3: Existing schedule crosses midnight
-                  OR (new_t0 < new_t2 AND s.time - interval '1 hour' >= s.time + interval '1 hour')
-                  AND (
-                      (tm > s.time AND (
-                          (new_t0 <= s.time + interval '1 hour' AND NEW.date >= s.date - 1)
-                          OR (new_t2 >= s.time - interval '1 hour' AND NEW.date <= s.date + 1)
-                      ))
-                      OR (tm < s.time AND (
-                          (new_t2 >= s.time - interval '1 hour' AND NEW.date <= s.date)
-                          OR (new_t0 <= s.time + interval '1 hour' AND NEW.date >= s.date - 1)
-                      ))
-                  )
-                  -- Case 4: Both schedules cross midnight
-                  OR (new_t0 >= new_t2 AND s.time - interval '1 hour' >= s.time + interval '1 hour')
-                  AND (
-                      (tm > new_t1 AND tm > s.time AND (
-                          (new_t0 <= s.time + interval '1 hour' AND s.date <= NEW.date + 1)
-                          OR (s.time - interval '1 hour' <= new_t2 AND NEW.date <= s.date + 1)
-                      ))
-                      OR (tm < new_t1 AND tm < s.time AND (
-                          (new_t2 >= s.time - interval '1 hour' AND s.date >= NEW.date - 1)
-                          OR (s.time + interval '1 hour' >= new_t0 AND NEW.date >= s.date - 1)
-                      ))
-                  )
-              )
           )
           OR (
-              -- Weekly schedules (week_number 1-7)
-              (NEW.week_number BETWEEN 1 AND 7 AND s.week_number BETWEEN 1 AND 7)
-              AND NEW.week_number = s.week_number
-              AND (
-                  -- Same logic as daily but only for matching weekdays
-                  (new_t0 < new_t2 AND s.time - interval '1 hour' < s.time + interval '1 hour')
-                  AND (
-                      (new_t0 <= s.time + interval '1 hour' AND new_t2 >= s.time - interval '1 hour')
-                      AND (NEW.date <= s.date OR s.date <= NEW.date)
-                  )
-                  OR (new_t0 >= new_t2 AND s.time - interval '1 hour' < s.time + interval '1 hour')
-                  AND (
-                      (tm > new_t1 AND (
-                          (s.time - interval '1 hour' <= new_t2 AND s.date >= NEW.date - 7)
-                          OR (s.time + interval '1 hour' >= new_t0 AND s.date <= NEW.date + 7)
-                      ))
-                      OR (tm < new_t1 AND (
-                          (s.time + interval '1 hour' >= new_t0 AND s.date <= NEW.date)
-                          OR (s.time - interval '1 hour' <= new_t2 AND s.date >= NEW.date - 7)
-                      ))
-                  )
-                  OR (new_t0 < new_t2 AND s.time - interval '1 hour' >= s.time + interval '1 hour')
-                  AND (
-                      (tm > s.time AND (
-                          (new_t0 <= s.time + interval '1 hour' AND NEW.date >= s.date - 7)
-                          OR (new_t2 >= s.time - interval '1 hour' AND NEW.date <= s.date + 7)
-                      ))
-                      OR (tm < s.time AND (
-                          (new_t2 >= s.time - interval '1 hour' AND NEW.date <= s.date)
-                          OR (new_t0 <= s.time + interval '1 hour' AND NEW.date >= s.date - 7)
-                      ))
-                  )
-              )
+              -- Mixed: daily vs weekly on matching day
+              ((NEW.week_number = 8 AND s.week_number BETWEEN 1 AND 7 
+                AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number)
+               OR (NEW.week_number BETWEEN 1 AND 7 AND s.week_number = 8
+                   AND NEW.week_number = EXTRACT(ISODOW FROM s.date)::int))
           )
           OR (
-              -- One-time schedules (week_number = 0)
-              (NEW.week_number = 0 AND s.week_number = 0)
-              AND NEW.date = s.date
-              AND (
-                  -- Time overlap check for same date
-                  (new_t0 < new_t2 AND s.time - interval '1 hour' < s.time + interval '1 hour')
-                  AND (new_t0 <= s.time + interval '1 hour' AND new_t2 >= s.time - interval '1 hour')
-                  OR (new_t0 >= new_t2 AND s.time - interval '1 hour' < s.time + interval '1 hour')
-                  AND (
-                      (tm > new_t1 AND (
-                          s.time - interval '1 hour' <= new_t2 OR s.time + interval '1 hour' >= new_t0
-                      ))
-                      OR (tm < new_t1 AND (
-                          s.time + interval '1 hour' >= new_t0 OR s.time - interval '1 hour' <= new_t2
-                      ))
-                  )
-                  OR (new_t0 < new_t2 AND s.time - interval '1 hour' >= s.time + interval '1 hour')
-                  AND (
-                      (tm > s.time AND (
-                          new_t0 <= s.time + interval '1 hour' OR new_t2 >= s.time - interval '1 hour'
-                      ))
-                      OR (tm < s.time AND (
-                          new_t2 >= s.time - interval '1 hour' OR new_t0 <= s.time + interval '1 hour'
-                      ))
-                  )
-              )
+              -- Mixed: one-time vs weekly on matching day
+              ((NEW.week_number = 0 AND s.week_number BETWEEN 1 AND 7
+                AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number)
+               OR (NEW.week_number BETWEEN 1 AND 7 AND s.week_number = 0
+                   AND NEW.week_number = EXTRACT(ISODOW FROM s.date)::int))
           )
           OR (
-              -- Mixed schedule types - daily vs weekly
-              ((NEW.week_number = 8 AND s.week_number BETWEEN 1 AND 7) 
-               OR (NEW.week_number BETWEEN 1 AND 7 AND s.week_number = 8))
-              AND (
-                  -- Check if the day of week matches for mixed types
-                  (NEW.week_number = 8 AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number)
-                  OR (s.week_number = 8 AND EXTRACT(ISODOW FROM s.date)::int = NEW.week_number)
-              )
-              AND (
-                  -- Same time overlap logic
-                  (new_t0 < new_t2 AND s.time - interval '1 hour' < s.time + interval '1 hour')
-                  AND (new_t0 <= s.time + interval '1 hour' AND new_t2 >= s.time - interval '1 hour')
-                  AND (NEW.date >= s.date AND s.date <= NEW.date)
-              )
+              -- Mixed: one-time vs daily (check date ranges)
+              ((NEW.week_number = 0 AND s.week_number = 8 AND NEW.date >= s.date)
+               OR (NEW.week_number = 8 AND s.week_number = 0 AND s.date >= NEW.date))
           )
-          OR (
-              -- Mixed with one-time schedules
-              ((NEW.week_number = 0 AND s.week_number = 8)
-               OR (NEW.week_number = 8 AND s.week_number = 0))
-              AND (
-                  (NEW.week_number = 0 AND NEW.date >= s.date)
-                  OR (s.week_number = 0 AND s.date >= NEW.date)
-              )
-              AND (
-                  (new_t0 < new_t2 AND s.time - interval '1 hour' < s.time + interval '1 hour')
-                  AND (new_t0 <= s.time + interval '1 hour' AND new_t2 >= s.time - interval '1 hour')
-              )
+      )
+      AND (
+          -- Time overlap detection with boundary cases
+          -- Handle normal time ranges (no midnight crossing)
+          (new_start_time < new_end_time AND s.time < (s.time + (s.duration || ' minutes')::interval))
+          AND (
+              new_start_time < (s.time + (s.duration || ' minutes')::interval)
+              AND s.time < new_end_time
           )
-          OR (
-              -- Weekly vs one-time
-              ((NEW.week_number = 0 AND s.week_number BETWEEN 1 AND 7)
-               OR (NEW.week_number BETWEEN 1 AND 7 AND s.week_number = 0))
-              AND (
-                  (NEW.week_number = 0 AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number AND NEW.date >= s.date)
-                  OR (s.week_number = 0 AND EXTRACT(ISODOW FROM s.date)::int = NEW.week_number AND s.date >= NEW.date)
-              )
-              AND (
-                  (new_t0 < new_t2 AND s.time - interval '1 hour' < s.time + interval '1 hour')
-                  AND (new_t0 <= s.time + interval '1 hour' AND new_t2 >= s.time - interval '1 hour')
-              )
+          OR
+          -- Handle midnight crossing cases
+          (new_start_time >= new_end_time OR s.time >= (s.time + (s.duration || ' minutes')::interval))
+          AND (
+              -- New schedule crosses midnight
+              (new_start_time >= new_end_time AND (
+                  s.time >= new_start_time OR (s.time + (s.duration || ' minutes')::interval) <= new_end_time
+              ))
+              OR
+              -- Existing schedule crosses midnight  
+              (s.time >= (s.time + (s.duration || ' minutes')::interval) AND (
+                  new_start_time >= s.time OR new_end_time <= (s.time + (s.duration || ' minutes')::interval)
+              ))
+              OR
+              -- Both cross midnight - always overlap
+              (new_start_time >= new_end_time AND s.time >= (s.time + (s.duration || ' minutes')::interval))
           )
       );
 
@@ -417,7 +321,7 @@ BEGIN
         s.duration,
         s.week_number,
         m.name as module_name,
-        COALESCE(tp.first_name || ' ' || tp.last_name, tp.last_name, u.name)::VARCHAR as tutor_name,
+        COALESCE(tp.first_name || ' ' || tp.last_name, tp.last_name, u.first_name || ' ' || u.last_name, u.first_name, u.last_name)::VARCHAR as tutor_name,
 		(CASE 
 		    WHEN s.week_number = 0 THEN 'One-time'
 		    WHEN s.week_number BETWEEN 1 AND 7 THEN 'Weekly'

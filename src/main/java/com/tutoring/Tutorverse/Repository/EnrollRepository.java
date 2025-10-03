@@ -12,7 +12,6 @@ import org.springframework.stereotype.Repository;
 public interface EnrollRepository extends JpaRepository<EnrollmentEntity, UUID> {
     List<EnrollmentEntity> findByStudentStudentId(UUID studentID);
     boolean existsByStudentStudentIdAndModuleModuleId(UUID studentId, UUID moduleId);
-    EnrollmentEntity findByStudentStudentIdAndModuleModuleId(UUID userId, UUID fromString);
     Optional<EnrollmentEntity> findByStudentStudentIdAndModuleModuleId(UUID studentId, UUID moduleId);
 
 

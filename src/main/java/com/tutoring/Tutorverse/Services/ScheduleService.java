@@ -91,13 +91,13 @@ public class ScheduleService {
         for (Object[] row : rows) {
             result.add(new UpcomingSessionResponse(
                 (UUID) row[0], // schedule_id
-                (UUID) row[1], // module_id
-                row[8] != null ? row[8].toString() : null, // tutor_name
-                row[7] != null ? row[7].toString() : null, // course/module_name
-                row[2] != null ? row[2].toString() : null,
-                row[4] != null ? row[4].toString() : null, // time
-                row[5] != null ? ((Number) row[5]).intValue() : null, // duration
-                row[3] != null ? (Boolean) row[3] : null // active
+                (UUID) row[1], // module_id  
+                row[7] != null ? row[7].toString() : null, // tutor_name
+                row[6] != null ? row[6].toString() : null, // module_name (course)
+                row[2] != null ? row[2].toString() : null, // date
+                row[3] != null ? row[3].toString() : null, // time
+                row[4] != null ? ((Number) row[4]).intValue() : null, // duration
+                true // active - students only see enrolled schedules, so always active
             ));
         }
         return result;

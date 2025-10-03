@@ -1,7 +1,6 @@
 package com.tutoring.Tutorverse.Model;
 
 import jakarta.persistence.*;
-import jakarta.persistence.criteria.CriteriaBuilder.In;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.Duration;

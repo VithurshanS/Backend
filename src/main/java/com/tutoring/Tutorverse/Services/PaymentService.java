@@ -25,9 +25,6 @@ public class PaymentService {
     @Autowired
     private StudentProfileRepository studentProfileRepository;
 
-    @Autowired
-    private EnrollmentService enrollmentService;
-
     @Value("${payhere.merchantId}") private String merchantId;
     @Value("${payhere.merchantSecret}") private String merchantSecret;
     @Value("${payhere.currency}") private String currency;

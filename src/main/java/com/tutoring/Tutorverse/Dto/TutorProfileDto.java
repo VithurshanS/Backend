@@ -14,17 +14,11 @@ import lombok.*;
 public class TutorProfileDto {
     private UUID tutorId;
 
-    @JsonProperty("first_name")
+    @JsonProperty("firstName")
     private String firstName;
 
-    @JsonProperty(value = "last_name", access = JsonProperty.Access.WRITE_ONLY)
+    @JsonProperty("lastName")
     private String lastName;
-
-    // Handle the variation with capital N
-    @JsonProperty("last_Name")
-    public void setLastNameVariation(String lastName) {
-        this.lastName = lastName;
-    }
 
     private String phoneNo;
     private TutorEntity.Gender gender;

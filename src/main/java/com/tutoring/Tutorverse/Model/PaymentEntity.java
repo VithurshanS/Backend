@@ -37,12 +37,14 @@ public class PaymentEntity {
     private Double amount;
 
     @Column(nullable = false, length = 10)
+    @Builder.Default
     private String currency = "LKR";
 
     @Column(name = "order_id", nullable = false, unique = true)
     private String orderId;
 
     @Column(nullable = false)
+    @Builder.Default
     private String status = "PENDING";
 
     @Column(name = "payhere_payment_id")
@@ -52,8 +54,10 @@ public class PaymentEntity {
     private String payhereSignature;
 
     @Column(name = "created_at")
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at")
+    @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
 }

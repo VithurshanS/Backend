@@ -4,11 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.tutoring.Tutorverse.Dto.UserCreateDto;
 import com.tutoring.Tutorverse.Dto.UserGetDto;
-import com.tutoring.Tutorverse.Model.Role;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.userRepository;
 import com.tutoring.Tutorverse.Services.JwtServices;
-import com.tutoring.Tutorverse.Services.RoleService;
 import com.tutoring.Tutorverse.Services.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,9 +46,6 @@ public class AuthController {
     @Autowired
     private JwtServices jwtServices;
 
-    @Autowired
-    private RoleService roleService;
-
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @GetMapping("/home")
@@ -67,10 +62,9 @@ public class AuthController {
         String email = body.get("email");
         String password = body.get("password");
         String role = body.get("role");
-        String firstName = body.get("first_name");
-        String lastName = body.get("last_name");
+        String name = body.get("name");
 
-        Optional<User> addedUser = userService.addUser(UserCreateDto.emailUser(email,firstName,lastName,password,role));
+        Optional<User> addedUser = userService.addUser(UserCreateDto.emailUser(email,name,password,role));
 
 
         if (addedUser.isEmpty()) {
@@ -145,8 +139,7 @@ public class AuthController {
             "message", "Login successfulo",
             "user", Map.of(
                 "email", user.getEmail(),
-                "firstName", user.getFirstName() != null ? user.getFirstName() : "",
-                "lastName", user.getLastName() != null ? user.getLastName() : "",
+                "name", user.getName() != null ? user.getName() : "",
                 "role", user.getRole().getName()
             )
         ));

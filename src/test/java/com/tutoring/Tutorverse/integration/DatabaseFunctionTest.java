@@ -96,6 +96,27 @@ public class DatabaseFunctionTest {
     }
 
     @Test
+    @DisplayName("Test get_upcoming_schedules_student function exists and is callable")
+    void testGetUpcomingSchedulesStudentFunction() {
+        try {
+            // Test the function with default parameters
+            String sql = "SELECT * FROM get_upcoming_schedules_student(?, ?, NULL, NULL, 5)";
+            List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, 
+                java.sql.Date.valueOf(LocalDate.now()), 
+                java.sql.Time.valueOf(LocalTime.now())
+            );
+            
+            // Function should be callable (results can be empty, but no exception should be thrown)
+            assertNotNull(results, "get_upcoming_schedules_student should return a result set");
+            System.out.println("✅ get_upcoming_schedules_student function is callable");
+            System.out.println("   Found " + results.size() + " student schedules");
+            
+        } catch (Exception e) {
+            fail("get_upcoming_schedules_student function test failed: " + e.getMessage());
+        }
+    }
+
+    @Test
     @DisplayName("Test basic data insertion into key tables")
     void testBasicDataInsertion() {
         try {

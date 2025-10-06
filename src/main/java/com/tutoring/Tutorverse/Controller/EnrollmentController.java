@@ -114,4 +114,13 @@ public class EnrollmentController {
 
 
 
+    @GetMapping("/count")
+    public ResponseEntity<?> getEnrollmentCountForModule(@RequestParam UUID moduleId) {
+        try {
+            Integer count = enrollmentService.countEnrollmentsByModuleId(moduleId);
+            return ResponseEntity.ok(count);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error retrieving enrollment count: " + e.getMessage());
+        }
+    }
 }

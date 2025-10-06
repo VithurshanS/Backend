@@ -225,4 +225,11 @@ public class PaymentService {
             return false;
         }
     }
+
+    public Integer countPayementForaModule(UUID moduleId) {
+        return paymentRepo.countByModuleIdAndStatus(moduleId, "SUCCESS");
+    }
+
+
+    
 }

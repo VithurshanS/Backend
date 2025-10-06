@@ -82,4 +82,8 @@ public class StudentProfileService {
 		}
 	}
 
+	public Integer getStudentCount() {
+		return studentRepository.findAll().size();
+	}
+
 }

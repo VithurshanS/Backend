@@ -22,4 +22,6 @@ public interface EnrollRepository extends JpaRepository<EnrollmentEntity, UUID> 
     // Alternative method using method naming convention
     @Query("SELECT e.isPaid FROM EnrollmentEntity e WHERE e.student.studentId = ?1 AND e.module.moduleId = ?2")
     Optional<Boolean> getIsPaidByStudentStudentIdAndModuleModuleId(UUID studentId, UUID moduleId);
+    
+    Integer countByModuleModuleId(UUID moduleId);
 }

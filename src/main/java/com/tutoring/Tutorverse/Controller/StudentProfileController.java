@@ -101,4 +101,15 @@ public class StudentProfileController {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token: " + e.getMessage());
 		}
 	}
+
+	@GetMapping("/count")
+	public ResponseEntity<?> getStudentCount() {
+		try {
+			Integer count = studentProfileService.getStudentCount();
+			return ResponseEntity.ok(count);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving student count: " + e.getMessage());
+		}
+	}
+
 }

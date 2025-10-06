@@ -62,6 +62,11 @@ public class TutorEntity {
     @Column(name = "bio", nullable = true, columnDefinition = "TEXT")
     private String bio;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = true)
+    @Builder.Default
+    private Status status = Status.PENDING;
+
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
@@ -82,6 +87,12 @@ public class TutorEntity {
     public enum Gender {
         MALE, FEMALE, OTHER
     }
+
+    public enum Status {
+        PENDING, APPROVED, BANNED
+    }
+
+
 
 
 }

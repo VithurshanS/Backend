@@ -101,6 +101,10 @@ public class EnrollmentService {
         return enrollment != null ? enrollment.getEnrolmentId() : null;
     }
 
+    public Integer countEnrollmentsByModuleId(UUID moduleId) {
+        return enrollRepository.countByModuleModuleId(moduleId);
+    }
+
 
 
 }

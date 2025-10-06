@@ -6,6 +6,7 @@ import com.tutoring.Tutorverse.Dto.PaymentDto;
 import com.tutoring.Tutorverse.Services.PaymentService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -63,4 +64,10 @@ public class PaymentController {
 
         return result;
     }
-}
+
+    @GetMapping("/count")
+    public ResponseEntity<Integer> countPaymentsForModule(@RequestParam UUID moduleId) {
+        Integer count = paymentService.countPayementForaModule(moduleId);
+        return ResponseEntity.ok(count);
+    }
+} 

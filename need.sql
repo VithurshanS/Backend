@@ -653,3 +653,66 @@ BEGIN
     RETURN matched_schedule;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Function to get all emails (tutor and students) for a specific module
+CREATE OR REPLACE FUNCTION get_module_emails(mod_id UUID)
+RETURNS TABLE (
+    email VARCHAR,
+    user_type VARCHAR,
+    user_id UUID,
+    user_name VARCHAR
+) AS $$
+BEGIN
+    RETURN QUERY
+    -- Get tutor email
+    SELECT 
+        u.email,
+        'TUTOR'::VARCHAR as user_type,
+        u.user_id,
+        u.name as user_name
+    FROM modules m
+    JOIN users u ON m.tutor_id = u.user_id
+    WHERE m.module_id = mod_id
+    
+    UNION ALL
+    
+    -- Get enrolled students' emails (where ayed = true means enrollment is paid/active)
+    SELECT 
+        u.email,
+        'STUDENT'::VARCHAR as user_type,
+        u.user_id,
+        u.name as user_name
+    FROM enrollments e
+    JOIN users u ON e.student_id = u.user_id
+    WHERE e.module_id = mod_id 
+    AND e.ayed = true;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create table to track fired notifications
+CREATE TABLE IF NOT EXISTS notification_tracking (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    schedule_id UUID NOT NULL,
+    scheduled_date DATE NOT NULL,
+    scheduled_time TIME NOT NULL,
+    notification_fired_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Create unique constraint to prevent duplicate notifications
+    UNIQUE(schedule_id, scheduled_date, scheduled_time)
+);
+
+-- Create index for better performance on cleanup queries
+CREATE INDEX IF NOT EXISTS idx_notification_tracking_date 
+ON notification_tracking (notification_fired_at);
+
+-- Create index for lookup performance
+CREATE INDEX IF NOT EXISTS idx_notification_tracking_schedule 
+ON notification_tracking (schedule_id, scheduled_date, scheduled_time);
+
+-- Add comment for documentation
+COMMENT ON TABLE notification_tracking IS 'Tracks fired email notifications to prevent duplicates';
+COMMENT ON COLUMN notification_tracking.schedule_id IS 'Reference to the schedule that triggered the notification';
+COMMENT ON COLUMN notification_tracking.scheduled_date IS 'Date of the scheduled class';
+COMMENT ON COLUMN notification_tracking.scheduled_time IS 'Time of the scheduled class';
+COMMENT ON COLUMN notification_tracking.notification_fired_at IS 'When the notification was fired';

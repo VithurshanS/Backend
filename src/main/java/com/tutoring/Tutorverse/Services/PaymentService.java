@@ -225,9 +225,14 @@ public class PaymentService {
             return false;
         }
     }
+ 
+    public Double countPayementForaModule(UUID moduleId) {
+        return paymentRepo.sumAmountByModuleIdAndStatus (moduleId, "SUCCESS");
+    }
 
-    public Integer countPayementForaModule(UUID moduleId) {
-        return paymentRepo.countByModuleIdAndStatus(moduleId, "SUCCESS");
+    public Double totalAmountSpentByStudent(UUID studentId) {
+        Double sum = paymentRepo.sumAmountByStudentIdAndStatus(studentId, "SUCCESS");
+        return sum != null ? sum : 0.0;
     }
 
 

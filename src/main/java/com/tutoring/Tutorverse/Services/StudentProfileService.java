@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 import java.util.UUID;
 
 import javax.management.RuntimeErrorException;
@@ -84,6 +86,32 @@ public class StudentProfileService {
 
 	public Integer getStudentCount() {
 		return studentRepository.findAll().size();
+	}
+
+	public Integer getActiveStudentCount() {
+		return studentRepository.findByIsActiveTrue().size();
+	}
+
+	public Integer getBannedStudentCount() {
+		return studentRepository.findByIsActiveFalse().size();
+	}
+
+	public List<StudentEntity> getAllStudents() {
+		return studentRepository.findAll();
+	}
+
+	public void banStudent(UUID id){
+		StudentEntity student = studentRepository.findById(id)
+			.orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
+		student.setIsActive(false);
+		studentRepository.save(student);
+	}
+
+	public void unbanStudent(UUID id){
+		StudentEntity student = studentRepository.findById(id)
+			.orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
+		student.setIsActive(true);
+		studentRepository.save(student);
 	}
 
 }

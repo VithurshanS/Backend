@@ -1,9 +1,13 @@
 package com.tutoring.Tutorverse.Services;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import com.tutoring.Tutorverse.Model.*;
 import com.tutoring.Tutorverse.Repository.*;
 import com.tutoring.Tutorverse.Dto.WithdrawalDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -76,8 +80,9 @@ public class WalletService {
     /**
      * Get all withdrawals for a specific tutor
      */
-    public List<WithdrawalEntity> getTutorWithdrawals(UUID tutorId) {
-        return withdrawalRepo.findByTutorId(tutorId);
+    public Page<WithdrawalEntity> getTutorWithdrawals(UUID tutorId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return withdrawalRepo.findByTutorId(tutorId, pageable);
     }
 
     /**

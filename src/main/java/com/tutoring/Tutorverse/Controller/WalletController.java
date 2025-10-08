@@ -2,11 +2,13 @@ package com.tutoring.Tutorverse.Controller;
 
 import com.tutoring.Tutorverse.Dto.WithdrawalDto;
 import com.tutoring.Tutorverse.Model.TutorEntity;
+import com.tutoring.Tutorverse.Model.WithdrawalEntity;
 import com.tutoring.Tutorverse.Services.WalletService;
 import com.tutoring.Tutorverse.Services.UserService;
 import com.tutoring.Tutorverse.Services.TutorProfileService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -52,9 +54,22 @@ public class WalletController {
         return ResponseEntity.ok(walletService.requestWithdrawal(dto));
     }
 
-    @GetMapping("/withdrawals/{tutorId}")
-    public ResponseEntity<List<?>> getWithdrawals(@PathVariable UUID tutorId) {
-        return ResponseEntity.ok(walletService.getTutorWithdrawals(tutorId));
+    @GetMapping("/withdrawals")
+    public ResponseEntity<?> getWithdrawals(
+            HttpServletRequest req,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        UUID tutorId = userService.getUserIdFromRequest(req);
+
+        if (tutorId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or missing authentication token"));
+        }
+
+        Page<WithdrawalEntity> withdrawals = walletService.getTutorWithdrawals(tutorId, page, size);
+        return ResponseEntity.ok(withdrawals);
     }
+
 
 }

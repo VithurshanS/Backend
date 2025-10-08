@@ -86,6 +86,23 @@ public class AuthController {
         return ResponseEntity.ok("User registered");
     }
 
+    @PostMapping("/api/admin/register")
+    public ResponseEntity<?> adminregister(@RequestBody Map<String, String> body,HttpServletResponse response) {
+        String email = body.get("email");
+        String password = body.get("password");
+        String role = body.get("role");
+        String name = body.get("name");
+
+        Optional<User> addedUser = userService.addUser(UserCreateDto.emailUser(email,name,password,role));
+
+
+        if (addedUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
+        }
+
+        return ResponseEntity.ok("User registered");
+    }
+
     @GetMapping("/api/getuser")
     public ResponseEntity<?> getuser(HttpServletRequest req){
         try{

@@ -11,7 +11,10 @@ import org.springframework.http.HttpStatus;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/api/student-profile")
@@ -101,4 +104,54 @@ public class StudentProfileController {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token: " + e.getMessage());
 		}
 	}
+
+	@GetMapping("/count")
+	public ResponseEntity<?> getStudentCount() {
+		try {
+			Integer count = studentProfileService.getStudentCount();
+			Integer activeCount = studentProfileService.getActiveStudentCount();
+			Integer bannedCount = studentProfileService.getBannedStudentCount();
+			// Map.of() does not allow null values; default nulls to 0 to prevent NPE / Whitelabel error
+			int safeTotal = count == null ? 0 : count;
+			int safeActive = activeCount == null ? 0 : activeCount;
+			int safeBanned = bannedCount == null ? 0 : bannedCount;
+			Map<String, Integer> payload = new HashMap<>();
+			payload.put("total", safeTotal);
+			payload.put("active", safeActive);
+			payload.put("banned", safeBanned);
+			return ResponseEntity.ok().body(payload);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving student count: " + e.getMessage());
+		}
+	}
+
+	@GetMapping("/all")
+	public ResponseEntity<?> getAllStudents() {
+		try {
+			return ResponseEntity.ok(studentProfileService.getAllStudents());
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving students: " + e.getMessage());
+		}
+	}
+
+	@PostMapping("/ban")
+	public ResponseEntity<?> banStudent(@RequestParam UUID studentId) {
+		try {
+			studentProfileService.banStudent(studentId);
+			return ResponseEntity.ok().build();
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error banning student: " + e.getMessage());
+		}
+	}
+	
+	@PostMapping("/unban")
+	public ResponseEntity<?> unbanStudent(@RequestParam UUID studentId) {
+		try {
+			studentProfileService.unbanStudent(studentId);
+			return ResponseEntity.ok().build();
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error unbanning student: " + e.getMessage());
+		}
+	}
+
 }

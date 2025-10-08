@@ -1,5 +1,6 @@
 package com.tutoring.Tutorverse.Controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -145,6 +146,40 @@ public class TutorProfileController {
     public ResponseEntity<List<TutorProfileDto>> searchTutorProfiles(@RequestParam String query) {
         List<TutorProfileDto> results = tutorProfileService.searchTutorProfiles(query);
         return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/count")
+    public ResponseEntity<?> getTutorCount() {
+        try {
+            Integer totalCount = tutorProfileService.getTutorCount();
+            Integer bannedCount = tutorProfileService.getBannedTutorCCount();
+            Integer pendingCount = tutorProfileService.getPendingTutors();
+            Integer approvedCount = tutorProfileService.getApprovedTutors();
+
+            Map<String, Integer> counts = new HashMap<>();
+            counts.put("total", totalCount);
+            counts.put("banned", bannedCount);
+            counts.put("pending", pendingCount);
+            counts.put("approved", approvedCount);
+
+            return ResponseEntity.ok(counts);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving tutor count: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/ban")
+    public ResponseEntity<?> banTutor(@RequestBody Map<String, String> body) {
+        UUID tutorId = UUID.fromString(body.get("tutorId"));
+        tutorProfileService.banTutor(tutorId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/approve")
+    public ResponseEntity<?> approveTutor(@RequestBody Map<String, String> body) {
+        UUID tutorId = UUID.fromString(body.get("tutorId"));
+        tutorProfileService.approveTutor(tutorId);
+        return ResponseEntity.ok().build();
     }
     
 

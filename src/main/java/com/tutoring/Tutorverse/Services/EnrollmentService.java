@@ -101,6 +101,17 @@ public class EnrollmentService {
         return enrollment != null ? enrollment.getEnrolmentId() : null;
     }
 
+    public Integer countEnrollmentsByModuleId(UUID moduleId) {
+        return enrollRepository.countByModuleModuleId(moduleId);
+    }
+
+    public List<ModuelsEntity> getenrolledModuleByStudentId(UUID studentId){
+        List<UUID> ModuleIds = enrollRepository.findByStudentStudentId(studentId)
+            .stream()
+            .map(enrollment -> enrollment.getModule().getModuleId())
+            .toList();
+        return moduleRepository.findAllById(ModuleIds);
+    }
 
 
 }

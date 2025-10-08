@@ -143,6 +143,10 @@ public class ModulesService {
             return List.of();
         }
     }
+
+    public Integer getModuleCount() {
+        return modulesRepository.findAll().size();
+    }
 }
 
 //

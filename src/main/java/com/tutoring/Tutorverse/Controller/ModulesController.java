@@ -120,4 +120,21 @@ public class ModulesController {
         System.out.println(modules);
         return ResponseEntity.ok(modules);
     }
-}
+
+    @GetMapping("/count")
+    public ResponseEntity<?> getModuleCount() {
+        try {
+            Integer count = modulesService.getModuleCount();
+            return ResponseEntity.ok(count);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving module count: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/getmodtutor")
+    public ResponseEntity<List<ModuelsDto>> getMT(@RequestParam UUID tutorId) {
+        List<ModuelsDto> modules = modulesService.getModulesByTutorId(tutorId);
+        return ResponseEntity.ok(modules);
+    }
+
+}  

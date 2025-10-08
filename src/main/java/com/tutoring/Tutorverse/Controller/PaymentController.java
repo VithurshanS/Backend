@@ -6,6 +6,8 @@ import com.tutoring.Tutorverse.Dto.PaymentDto;
 import com.tutoring.Tutorverse.Services.PaymentService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -14,9 +16,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+
 @CrossOrigin(origins ="https://frontend.shancloudservice.com")
 @RestController
 @RequestMapping("/api/payments")
+@Slf4j
 public class PaymentController {
 
     private final PaymentService paymentService;
@@ -63,4 +67,25 @@ public class PaymentController {
 
         return result;
     }
-}
+
+    @GetMapping("/count")
+    public ResponseEntity<Double> countPaymentsForModule(@RequestParam UUID moduleId) {
+        Double count = paymentService.countPayementForaModule(moduleId);
+        return ResponseEntity.ok(count);
+    }
+
+
+
+    @GetMapping("/totalspent")
+    public ResponseEntity<TotalSpentResponse> totalAmountSpentByStudent(@RequestParam UUID studentId) {
+        if (studentId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or invalid token");
+        }
+        Double total = paymentService.totalAmountSpentByStudent(studentId);
+        log.debug("Total monetary amount spent by student {} is {}", studentId, total);
+        return ResponseEntity.ok(new TotalSpentResponse(studentId, total, "LKR"));
+    }
+
+    public record TotalSpentResponse(UUID studentId, Double totalSpent, String currency) {}
+    
+} 

@@ -32,16 +32,20 @@ public class WithdrawalEntity {
     private double amount;
 
     @Column(nullable = false)
-    private String status = "PENDING"; // PENDING, APPROVED, REJECTED, PAID
+    private String status = "PENDING";
+    // PENDING: tutor requested
+    // APPROVED: admin approved and ready to pay
+    // REJECTED: admin declined
+    // PAID: payment completed
 
     @Column(name = "method", nullable = false)
-    private String method; // e.g., "BANK", "EZCASH", etc.
+    private String method; // e.g., BANK, EZCASH, PAYHERE
 
     @Column(name = "account_name", nullable = false)
     private String accountName;
 
-    @Column(name = "bank_name", nullable = false)
-    private String bankName;
+    @Column(name = "bank_name")
+    private String bankName; // optional if method != BANK
 
     @Column(name = "account_number", nullable = false)
     private String accountNumber;
@@ -54,4 +58,19 @@ public class WithdrawalEntity {
 
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
+
+    // ✅ New fields below (for admin actions & PayHere)
+
+    @Column(name = "admin_id")
+    private UUID adminId;
+    // Which admin approved or rejected this withdrawal
+
+    @Column(name = "transaction_id")
+    private String transactionId;
+    // PayHere transaction reference ID
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+    // When PayHere confirmed payment
 }
+

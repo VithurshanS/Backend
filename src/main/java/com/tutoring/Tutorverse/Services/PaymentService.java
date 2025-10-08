@@ -4,9 +4,12 @@ import com.tutoring.Tutorverse.Model.ModuelsEntity;
 import com.tutoring.Tutorverse.Model.EnrollmentEntity;
 import com.tutoring.Tutorverse.Model.PaymentEntity;
 import com.tutoring.Tutorverse.Model.StudentEntity;
+import com.tutoring.Tutorverse.Dto.WalletDto;
+import com.tutoring.Tutorverse.Services.WalletService;
 import com.tutoring.Tutorverse.Repository.EnrollRepository;
 import com.tutoring.Tutorverse.Repository.PaymentRepository;
 import com.tutoring.Tutorverse.Repository.StudentProfileRepository;
+import com.tutoring.Tutorverse.Repository.ModulesRepository;
 import com.tutoring.Tutorverse.SecurityConfigs.PayHereHash;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +27,12 @@ public class PaymentService {
 
     @Autowired
     private StudentProfileRepository studentProfileRepository;
+
+    @Autowired
+    private WalletService walletService;
+
+    @Autowired
+    private ModulesRepository modulesRepository;
 
     @Value("${payhere.merchantId}") private String merchantId;
     @Value("${payhere.merchantSecret}") private String merchantSecret;
@@ -164,6 +173,18 @@ public class PaymentService {
                             System.out.println("No enrollment found for student: " + payment.getStudentId() +
                                             ", module: " + payment.getModuleId());
                         }
+
+                        // Update tutor wallet
+                        try {
+                            ModuelsEntity module = modulesRepository.findById(payment.getModuleId())
+                                .orElseThrow(() -> new RuntimeException("Module not found with id: " + payment.getModuleId()));
+
+                            walletService.updateWalletBalance(module.getTutorId(), payment.getAmount());
+                            System.out.println("Tutor wallet updated: " + module.getTutorId() + ", Amount: " + payment.getAmount()*10/100);
+                        } catch (Exception e) {
+                            System.out.println("Error updating tutor wallet: " + e.getMessage());
+                        }
+
                         return true;
 
                     case "0": // Pending

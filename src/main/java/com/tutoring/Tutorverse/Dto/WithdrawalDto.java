@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -12,9 +13,12 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class WithdrawalDto {
-    private String tutorName;
     private UUID tutorId;
+    private String tutorName;
     private double amount;
     private String method;
-    private String accountDetails;
+    private String accountName;
+    private String bankName;
+    private String accountNumber;
+    private String notes;
 }

@@ -119,5 +119,33 @@ public class TutorProfileService {
         return tutorRepository.findAll();
     }
 
+    public Integer getTutorCount() {
+        return tutorRepository.findAll().size();
+    }
+
+    public Integer getBannedTutorCCount(){
+        return tutorRepository.findByStatus(TutorEntity.Status.BANNED).size();
+    }
+
+    public Integer getPendingTutors() {
+        return tutorRepository.findByStatus(TutorEntity.Status.PENDING).size();
+    }
+
+    public Integer getApprovedTutors() {
+        return tutorRepository.findByStatus(TutorEntity.Status.APPROVED).size();
+    }
+
+    public void approveTutor(UUID tutorId) {
+        TutorEntity tutor = getTutorProfile(tutorId);
+        tutor.setStatus(TutorEntity.Status.APPROVED);
+        tutorRepository.save(tutor);
+    }
+    
+    public void banTutor(UUID tutorId) {
+        TutorEntity tutor = getTutorProfile(tutorId);
+        tutor.setStatus(TutorEntity.Status.BANNED);
+        tutorRepository.save(tutor);
+    }
+
 
 }

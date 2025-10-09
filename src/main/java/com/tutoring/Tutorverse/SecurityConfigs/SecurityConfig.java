@@ -26,6 +26,9 @@ public class SecurityConfig {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Autowired
     @Lazy
     private userRepository userRepo;
@@ -44,7 +47,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOriginPatterns(Arrays.asList(frontendUrl));
+                    config.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
                     config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
                     config.setAllowedHeaders(Arrays.asList("*"));
                     config.setAllowCredentials(true);

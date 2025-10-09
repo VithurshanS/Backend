@@ -1,5 +1,7 @@
 package com.tutoring.Tutorverse.Repository;
 
+import org.hibernate.SessionFactory;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,13 +23,15 @@ import java.util.UUID;
 import com.tutoring.Tutorverse.Model.*;
 import com.tutoring.Tutorverse.TestUtils.BaseRepositoryTest;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
 @DataJpaTest
 @ActiveProfiles("test")
 @Transactional
 @Rollback(true)
-public class RatingRepoTest extends BaseRepositoryTest {
+public class RatingRepoTests extends BaseRepositoryTest {
 
     @Autowired
     private RatingRepository ratingRepository;
@@ -125,8 +129,7 @@ public class RatingRepoTest extends BaseRepositoryTest {
     @Test
     public void testCreateRating() {
         RatingEntity rating = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
-            .enrollment(testEnrollment)
+            .enrollment(testEnrollment)  // Only set the enrollment, @MapsId will handle the ID
             .rating(new BigDecimal("4.5"))
             .feedback("Great module! Very helpful instructor.")
             .createdAt(Instant.now())
@@ -149,7 +152,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
     public void testRatingWithMissingMandatoryFields() {
         // Test missing moduleId
         RatingEntity ratingWithoutModuleId = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("4.5"))
             .feedback("Great module!")
@@ -160,11 +162,10 @@ public class RatingRepoTest extends BaseRepositoryTest {
         assertThatThrownBy(() -> {
             ratingRepository.save(ratingWithoutModuleId);
             entityManager.flush();
-        }).isInstanceOf(DataIntegrityViolationException.class);
+        }).isInstanceOf(ConstraintViolationException.class);
 
         // Test missing createdAt
         RatingEntity ratingWithoutCreatedAt = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("4.5"))
             .feedback("Great module!")
@@ -181,7 +182,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
     @Test
     public void testFindByEnrolmentId() {
         RatingEntity rating = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("4.0"))
             .feedback("Good module")
@@ -203,7 +203,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
     @Test
     public void testExistsByEnrolmentId() {
         RatingEntity rating = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("3.5"))
             .feedback("Average module")
@@ -252,7 +251,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
 
         // Create ratings for both enrollments
         RatingEntity rating1 = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("4.5"))
             .feedback("Excellent module!")
@@ -262,7 +260,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
             .build();
 
         RatingEntity rating2 = RatingEntity.builder()
-            .enrolmentId(enrollment2.getEnrolmentId())
             .enrollment(enrollment2)
             .rating(new BigDecimal("3.0"))
             .feedback("Ok module")
@@ -285,7 +282,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
     @Test
     public void testFindAllByModuleId() {
         RatingEntity rating = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("5.0"))
             .feedback("Perfect module!")
@@ -327,7 +323,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
 
         // Create ratings for both enrollments
         RatingEntity rating1 = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("4.0"))
             .feedback("Good calculus module")
@@ -337,7 +332,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
             .build();
 
         RatingEntity rating2 = RatingEntity.builder()
-            .enrolmentId(enrollment2.getEnrolmentId())
             .enrollment(enrollment2)
             .rating(new BigDecimal("3.5"))
             .feedback("Good algebra module")
@@ -361,7 +355,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
     public void testRatingScalePrecision() {
         // Test various rating values to ensure precision/scale works correctly
         RatingEntity rating1 = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("1.0"))
             .feedback("Poor")
@@ -386,7 +379,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
     @Test
     public void testDuplicateRatingForSameEnrollment() {
         RatingEntity rating1 = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("4.0"))
             .feedback("First rating")
@@ -400,7 +392,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
 
         // Try to create another rating for the same enrollment
         RatingEntity rating2 = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("5.0"))
             .feedback("Second rating")
@@ -419,7 +410,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
     @Test
     public void testUpdateRating() {
         RatingEntity rating = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("3.0"))
             .feedback("Initial rating")
@@ -445,7 +435,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
     @Test
     public void testDeleteRating() {
         RatingEntity rating = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("4.0"))
             .feedback("Good module")
@@ -473,7 +462,6 @@ public class RatingRepoTest extends BaseRepositoryTest {
     public void testRatingWithNullFeedback() {
         // Test that feedback can be null
         RatingEntity rating = RatingEntity.builder()
-            .enrolmentId(testEnrollment.getEnrolmentId())
             .enrollment(testEnrollment)
             .rating(new BigDecimal("4.0"))
             .feedback(null) // Null feedback should be allowed
@@ -487,5 +475,68 @@ public class RatingRepoTest extends BaseRepositoryTest {
 
         assertThat(savedRating.getFeedback()).isNull();
         assertThat(savedRating.getRating()).isEqualTo(new BigDecimal("4.0"));
+    }
+
+
+    @Test
+    public void testAverageRatingCalculation() {
+        // Create multiple ratings for the same module
+        User student2User = persistTestStudent("teststudent2@example.com", "Test Student 2");
+        entityManager.flush();
+
+        StudentEntity testStudent2 = StudentEntity.builder()
+            .user(student2User)
+            .firstName("Test")
+            .lastName("Student 2")
+            .address("123 Test St")
+            .city("Test City")
+            .country("Test Country")
+            .phoneNumber("1234567892")
+            .bio("Test student 2 bio")
+            .isActive(true)
+            .build();
+        testStudent2 = studentProfileRepository.save(testStudent2);
+        entityManager.flush();
+
+        // Create another enrollment for the second student
+        EnrollmentEntity testEnrollment2 = EnrollmentEntity.builder()
+            .student(testStudent2)
+            .module(testModule)
+            .isPaid(true)
+            .build();
+        testEnrollment2 = enrollRepository.save(testEnrollment2);
+        entityManager.flush();
+
+        // Create ratings for both students
+        RatingEntity rating1 = RatingEntity.builder()
+            .enrollment(testEnrollment)
+            .rating(new BigDecimal("4.0"))
+            .feedback("Good module")
+            .createdAt(Instant.now())
+            .studentName("Test Student")
+            .moduleId(testModule.getModuleId())
+            .build();
+
+        RatingEntity rating2 = RatingEntity.builder()
+            .enrollment(testEnrollment2)
+            .rating(new BigDecimal("5.0"))
+            .feedback("Excellent module")
+            .createdAt(Instant.now())
+            .studentName("Test Student 2")
+            .moduleId(testModule.getModuleId())
+            .build();
+
+        ratingRepository.save(rating1);
+        ratingRepository.save(rating2);
+        entityManager.flush();
+
+
+        // Calculate average rating
+        Optional<ModuelsEntity> modules = modulesRepository.findByModuleId(testModule.getModuleId());
+        assertThat(modules).isPresent();
+
+        entityManager.refresh(modules.get());
+        BigDecimal averageRating = modules.get().getAverageRatings();
+        assertThat(averageRating).isEqualTo(new BigDecimal("4.5"));
     }
 }

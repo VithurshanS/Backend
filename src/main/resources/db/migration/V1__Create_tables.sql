@@ -48,6 +48,7 @@ CREATE TABLE tutor (
     last_name varchar(255) not null,
     phone_no varchar(255) not null unique,
     portfolio TEXT,
+    status varchar(255) check (status in ('PENDING','APPROVED','BANNED')),
     primary key (tutor_id)
 );
 
@@ -129,7 +130,7 @@ CREATE TABLE material (
 
 -- Create payments table
 CREATE TABLE payments (
-    amount float(53) not null,
+    amount FLOAT8 not null,
     created_at timestamp(6),
     updated_at timestamp(6),
     currency varchar(10) not null,

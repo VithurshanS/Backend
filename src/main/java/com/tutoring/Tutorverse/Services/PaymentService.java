@@ -179,7 +179,7 @@ public class PaymentService {
                             ModuelsEntity module = modulesRepository.findById(payment.getModuleId())
                                 .orElseThrow(() -> new RuntimeException("Module not found with id: " + payment.getModuleId()));
 
-                            walletService.updateWalletBalance(module.getTutorId(), payment.getAmount());
+                            walletService.updateWalletBalance(module.getTutorId(), payment.getAmount()*0.9);
                             System.out.println("Tutor wallet updated: " + module.getTutorId() + ", Amount: " + payment.getAmount()*10/100);
                         } catch (Exception e) {
                             System.out.println("Error updating tutor wallet: " + e.getMessage());

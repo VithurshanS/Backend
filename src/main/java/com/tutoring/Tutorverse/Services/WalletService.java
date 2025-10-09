@@ -85,6 +85,11 @@ public class WalletService {
         return withdrawalRepo.findByTutorId(tutorId, pageable);
     }
 
+    public Page<WithdrawalEntity> getAllWithdrawals(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return withdrawalRepo.findAll(pageable);
+    }
+
     /**
      * Admin updates withdrawal status (APPROVED / REJECTED / PAID)
      */
@@ -97,16 +102,41 @@ public class WalletService {
         withdrawalRepo.save(withdrawal);
     }
 
-    /**
-     * Update tutor's wallet balance (e.g. after module purchase)
-     */
+
     public WalletEntity updateWalletBalance(UUID tutorId, double amount) {
         WalletEntity wallet = getOrCreateWallet(tutorId);
-        double creditedAmount = amount * 0.9; // 90% tutor share after 10% platform fee
-        wallet.setAvailableBalance(wallet.getAvailableBalance() + creditedAmount);
+        wallet.setAvailableBalance(wallet.getAvailableBalance() + amount);
         wallet.setUpdatedAt(LocalDateTime.now());
 
         System.out.println("Updated wallet balance for tutor " + tutorId + ": " + wallet.getAvailableBalance());
         return walletRepo.save(wallet);
     }
+
+    public Double getTotalPendingAmount() {
+        return withdrawalRepo.getTotalPendingAmount() != null
+                ? withdrawalRepo.getTotalPendingAmount()
+                : 0.0;
+    }
+
+    public Double getTotalApprovedAmount() {
+        return withdrawalRepo.getTotalApprovedAmount() != null
+                ? withdrawalRepo.getTotalApprovedAmount()
+                : 0.0;
+    }
+
+    public Long getPendingCount() {
+        return withdrawalRepo.getPendingCount() != null
+                ? withdrawalRepo.getPendingCount()
+                : 0L;
+    }
+
+    // Optional: return everything in one response
+    public Map<String, Object> getWithdrawalSummary() {
+        return Map.of(
+                "totalPendingAmount", getTotalPendingAmount(),
+                "totalApprovedAmount", getTotalApprovedAmount(),
+                "pendingRequests", getPendingCount()
+        );
+    }
+
 }

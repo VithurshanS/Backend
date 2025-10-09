@@ -241,51 +241,50 @@ public class StudentRepoTests extends BaseRepositoryTest {
         }).isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    // @Test
-    // @Disabled("Ignoring this test case as requested")
-    // public void testStudentProfileWithDuplicatePhoneNumber() {
-    //     Optional<User> student = userRepository.findByEmail("teststudent@example.com");
-    //     assert(student.isPresent());
-    //     assert(student.get().getRole().getName().equals("STUDENT"));
+    @Test
+    public void testStudentProfileWithDuplicatePhoneNumber() {
+        Optional<User> student = userRepository.findByEmail("teststudent@example.com");
+        assert(student.isPresent());
+        assert(student.get().getRole().getName().equals("STUDENT"));
 
-    //     StudentEntity studentProfile1 = new StudentEntity();
-    //     studentProfile1.setFirstName("Test");
-    //     studentProfile1.setLastName("Student");
-    //     studentProfile1.setUser(student.get());
-    //     studentProfile1.setAddress("address");
-    //     studentProfile1.setCity("city");
-    //     studentProfile1.setCountry("country");
-    //     studentProfile1.setPhoneNumber("1234567890");
-    //     studentProfile1.setBio("bio");
-    //     studentProfile1.setIsActive(true);
+        StudentEntity studentProfile1 = new StudentEntity();
+        studentProfile1.setFirstName("Test");
+        studentProfile1.setLastName("Student");
+        studentProfile1.setUser(student.get());
+        studentProfile1.setAddress("address");
+        studentProfile1.setCity("city");
+        studentProfile1.setCountry("country");
+        studentProfile1.setPhoneNumber("1234567890");
+        studentProfile1.setBio("bio");
+        studentProfile1.setIsActive(true);
         
-    //     studentProfileRepository.save(studentProfile1);
-    //     entityManager.flush();
+        studentProfileRepository.save(studentProfile1);
+        entityManager.flush();
         
-    //     persistTestStudent("teststudent2@example.com", "Test2 Student");
-    //     entityManager.flush();
-    //     Optional<User> student2 = userRepository.findByEmail("teststudent2@example.com");
-    //     assert(student2.isPresent());
-    //     assert(student2.get().getRole().getName().equals("STUDENT"));
+        persistTestStudent("teststudent2@example.com", "Test2 Student");
+        entityManager.flush();
+        Optional<User> student2 = userRepository.findByEmail("teststudent2@example.com");
+        assert(student2.isPresent());
+        assert(student2.get().getRole().getName().equals("STUDENT"));
         
-    //     StudentEntity studentProfile2 = new StudentEntity();
-    //     studentProfile2.setFirstName("Test");
-    //     studentProfile2.setLastName("Student");
-    //     studentProfile2.setUser(student2.get());
-    //     studentProfile2.setAddress("address");
-    //     studentProfile2.setCity("city");
-    //     studentProfile2.setCountry("country");
-    //     studentProfile2.setPhoneNumber("1234567890"); // Same phone number
-    //     studentProfile2.setBio("bio");
-    //     studentProfile2.setIsActive(true);
+        StudentEntity studentProfile2 = new StudentEntity();
+        studentProfile2.setFirstName("Test");
+        studentProfile2.setLastName("Student");
+        studentProfile2.setUser(student2.get());
+        studentProfile2.setAddress("address");
+        studentProfile2.setCity("city");
+        studentProfile2.setCountry("country");
+        studentProfile2.setPhoneNumber("1234567890"); // Same phone number
+        studentProfile2.setBio("bio");
+        studentProfile2.setIsActive(true);
         
-    //     // Note: This test assumes phone_number has a unique constraint
-    //     // If not, this test should be removed or the constraint should be added
-    //     assertThatThrownBy(() -> {
-    //         studentProfileRepository.save(studentProfile2);
-    //         entityManager.flush();
-    //     }).isInstanceOf(PersistenceException.class);
-    // }
+        // Note: This test assumes phone_number has a unique constraint
+        // If not, this test should be removed or the constraint should be added
+        assertThatThrownBy(() -> {
+            studentProfileRepository.save(studentProfile2);
+            entityManager.flush();
+        }).isInstanceOf(PersistenceException.class);
+    }
 
     // @Test
     // public void testFindByFirstNameIgnoreCaseConstraint() {

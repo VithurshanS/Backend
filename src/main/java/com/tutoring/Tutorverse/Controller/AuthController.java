@@ -55,10 +55,6 @@ public class AuthController {
 
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    @GetMapping("/home")
-    public String home(Authentication authentication) {
-        return "home";
-    }
 
 
 
@@ -151,19 +147,7 @@ public class AuthController {
             )
         ));
     }
-    // @GetMapping("/")
-    // public String home() {
-    //     return """
-    //         <h2>OAuth2 JWT Demo</h2>
-    //         <p>Login with different roles:</p>
-    //         <ul>
-    //             <li><a href='/oauth2/authorization/google?role=TUTOR'>Login as USER</a></li>
-    //             <li><a href='/oauth2/authorization/google?role=ADMIN'>Login as ADMIN</a></li>
-    //             <li><a href='/oauth2/authorization/google?role=STUDENT'>Login as MODERATOR</a></li>
-    //         </ul>
-    //         <p><strong>Note:</strong> Role only applies to new user registration. Existing users keep their current roles.</p>
-    //         """;
-    // }
+
     @GetMapping("/oauth2/login/{role}")
     public void oauthLogin(@PathVariable String role, 
                           @RequestParam(value = "redirect_uri", required = false) String redirectUri,
@@ -211,11 +195,7 @@ public class AuthController {
 
         return ResponseEntity.ok().body("{\"message\": \"Logged out successfully\"}");
     }
-    @PostMapping("/sum/post")
-    public String pp(@RequestBody Map<String,Object> ss){
-        return (String) ss.get("sum");
 
-    }
     @GetMapping("/api/user/profile")
     public Map<String, Object> getUserProfile() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

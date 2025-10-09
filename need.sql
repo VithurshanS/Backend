@@ -716,3 +716,77 @@ COMMENT ON COLUMN notification_tracking.schedule_id IS 'Reference to the schedul
 COMMENT ON COLUMN notification_tracking.scheduled_date IS 'Date of the scheduled class';
 COMMENT ON COLUMN notification_tracking.scheduled_time IS 'Time of the scheduled class';
 COMMENT ON COLUMN notification_tracking.notification_fired_at IS 'When the notification was fired';
+
+
+CREATE OR REPLACE FUNCTION update_module_average_rating()
+RETURNS TRIGGER AS $$
+DECLARE
+    target_module_id UUID;
+    avg_rating DECIMAL(3,1);
+    rating_count INTEGER;
+BEGIN
+    -- Determine which module_id to update based on the operation
+    IF TG_OP = 'DELETE' THEN
+        target_module_id := OLD.module_id;
+    ELSE
+        target_module_id := NEW.module_id;
+    END IF;
+
+    -- For UPDATE operations, we might need to update both old and new modules
+    -- if the module_id changed (though this is unlikely in practice)
+    IF TG_OP = 'UPDATE' AND OLD.module_id != NEW.module_id THEN
+        -- Update the old module first
+        SELECT 
+            COALESCE(AVG(rating), 0.0),
+            COUNT(*)
+        INTO avg_rating, rating_count
+        FROM rating 
+        WHERE module_id = OLD.module_id 
+        AND rating IS NOT NULL;
+
+        UPDATE modules 
+        SET average_ratings = ROUND(avg_rating, 1),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE module_id = OLD.module_id;
+
+        -- Log the update for the old module
+        RAISE NOTICE 'Updated average rating for module % to % (based on % ratings)', 
+            OLD.module_id, ROUND(avg_rating, 1), rating_count;
+    END IF;
+
+    -- Calculate new average rating for the target module
+    SELECT 
+        COALESCE(AVG(rating), 0.0),
+        COUNT(*)
+    INTO avg_rating, rating_count
+    FROM rating 
+    WHERE module_id = target_module_id 
+    AND rating IS NOT NULL;
+
+    -- Update the modules table with the new average rating
+    UPDATE modules 
+    SET average_ratings = ROUND(avg_rating, 1),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE module_id = target_module_id;
+
+    -- Log the update
+    RAISE NOTICE 'Updated average rating for module % to % (based on % ratings)', 
+        target_module_id, ROUND(avg_rating, 1), rating_count;
+
+    -- Return the appropriate record based on operation
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Drop existing trigger if it exists
+DROP TRIGGER IF EXISTS trg_update_module_average_rating ON rating;
+
+-- Create trigger that fires after INSERT, UPDATE, or DELETE on rating table
+CREATE TRIGGER trg_update_module_average_rating
+    AFTER INSERT OR UPDATE OR DELETE ON rating
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_module_average_rating();

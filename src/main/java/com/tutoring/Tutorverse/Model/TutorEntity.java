@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.*;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.AssertTrue;
 
 
 
@@ -72,11 +73,44 @@ public class TutorEntity {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        validateUserRole();
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+        validateUserRole();
+    }
+
+    /**
+     * Validates that the associated user has the TUTOR role
+     * Throws IllegalArgumentException if the user role is not TUTOR
+     */
+    private void validateUserRole() {
+        if (user != null && user.getRole() != null) {
+            String roleName = user.getRole().getName();
+            if (!"TUTOR".equals(roleName)) {
+                throw new IllegalArgumentException(
+                    "TutorEntity can only be associated with users having TUTOR role. Found role: " + roleName
+                );
+            }
+        } else if (user != null && user.getRole() == null) {
+            throw new IllegalArgumentException("User must have a role assigned to be associated with TutorEntity");
+        } else if (user == null) {
+            throw new IllegalArgumentException("TutorEntity must be associated with a User");
+        }
+    }
+
+    /**
+     * Bean validation method to ensure user role is TUTOR
+     * This will be called during validation
+     */
+    @AssertTrue(message = "User must have TUTOR role to be associated with TutorEntity")
+    public boolean isUserRoleValid() {
+        if (user == null || user.getRole() == null) {
+            return false; // User and role must be present
+        }
+        return "TUTOR".equals(user.getRole().getName());
     }
 
     public enum Gender {

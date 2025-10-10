@@ -21,5 +21,6 @@ public interface userRepository extends CrudRepository<User,UUID> {
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.twoFactorEnabled = true")
     long countWithTwoFactor();
+    Optional<User> findById(UUID id);
 
 }

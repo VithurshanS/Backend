@@ -11,6 +11,7 @@ import com.tutoring.Tutorverse.Model.TutorEntity;
 
 public interface TutorProfileRepository extends JpaRepository<TutorEntity, UUID> {
 
+
     Optional<TutorEntity> findByFirstNameContainingIgnoreCase(String query);
 
     List<TutorEntity> findByStatus(TutorEntity.Status status);

@@ -52,6 +52,8 @@ public class AuthController {
 
     @Autowired
     private JwtServices jwtServices;
+    @Autowired
+    private com.tutoring.Tutorverse.Services.TOTPService totpService;
 
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -142,6 +144,7 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpServletResponse response) {
         String email = body.get("email");
         String password = body.get("password");
+        String totpCodeStr = body.get("totpCode");
 
         Optional<User> userOpt = userRepo.findByEmail(email);
         if (userOpt.isEmpty() || userOpt.get().getPassword() == null) {
@@ -151,6 +154,25 @@ public class AuthController {
         User user = userOpt.get();
         if (!passwordEncoder.matches(password, user.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        }
+
+        // If 2FA is enabled, require a valid TOTP code
+        if (user.isTwoFactorEnabled()) {
+            if (totpCodeStr == null || totpCodeStr.isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "TOTP_REQUIRED", "message", "Two-factor code required"));
+            }
+            try {
+                int totpCode = Integer.parseInt(totpCodeStr);
+                boolean ok = totpService.verifyCode(user.getTotpSecret(), totpCode);
+                if (!ok) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(Map.of("error", "TOTP_INVALID", "message", "Invalid two-factor code"));
+                }
+            } catch (NumberFormatException e) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "TOTP_INVALID", "message", "Invalid TOTP format"));
+            }
         }
 
         String token = jwtServices.generateJwtToken(user);

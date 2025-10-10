@@ -29,22 +29,14 @@ CREATE OR REPLACE FUNCTION check_schedule_clash()
 RETURNS TRIGGER AS $$
 DECLARE
     clash_count INT;
-    new_t0 TIME; -- NEW schedule start boundary (time - 1 hour)
-    new_t1 TIME; -- NEW schedule time
-    new_t2 TIME; -- NEW schedule end boundary (time + 1 hour)
-    new_tm TIME := '12:00:00'::TIME; -- NEW schedule noon reference
-    new_date DATE;
-    new_week_number INTEGER;
+    new_req_time TIME;
+    new_req_date DATE;
 BEGIN
-    -- Calculate NEW schedule boundaries
-    new_t0 := NEW.time - interval '1 hour';
-    new_t1 := NEW.time;
-    new_t2 := NEW.time + interval '1 hour';
-    new_date := NEW.date;
-    new_week_number := NEW.week_number;
+    -- Use the new schedule's time and date for checking
+    new_req_time := NEW.time;
+    new_req_date := NEW.date;
 
-    -- Comprehensive bidirectional schedule clash detection
-    -- This checks ALL possible combinations between existing and new schedules
+    -- Use the same sophisticated logic as find_matching_schedule function
     WITH sched AS (
         SELECT 
             s.*,
@@ -65,238 +57,161 @@ BEGIN
     SELECT COUNT(*)
     INTO clash_count
     FROM sched s
-    WHERE 
-    -- BIDIRECTIONAL CLASH DETECTION: Check all pattern combinations
-    (
-        -- CASE 1: EXISTING schedule is ONE-TIME (week_number = 0)
-        (
-		        (s.week_number = 0) 
+    WHERE (
+		    (
+		        (s.week_number = 8) 
 		        AND ((NEW.week_number = 0 AND (
-		            (s.t0 < s.t2 AND s.t0 <= new_t1 AND new_t1 <= s.t2 AND new_date = s.date) 
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND s.date <= NEW.date) 
 		            OR (s.t0 >= s.t2 AND (
 		                (s.tm > s.t1 AND (
-		                    (new_t1 >= s.t0 AND s.date = new_date + 1) 
-		                    OR (s.t2 >= new_t1 AND new_date = s.date)
+		                    (new_req_time >= s.t0 AND s.date <= new_req_date + 1) 
+		                    OR (s.t2 >= new_req_time AND new_req_date >= s.date)
 		                )) 
 		                OR 
 		                (s.tm < s.t1 AND (
-		                    (new_t1 <= s.t2 AND s.date = new_date - 1) 
-		                    OR (new_t1 >= s.t0 AND new_date = s.date)
+		                    (new_req_time <= s.t2 AND s.date <= new_req_date - 1) 
+		                    OR (new_req_time >= s.t0 AND new_req_date >= s.date)
 		                ))
 		            ))
 		        )
 		    )OR ((NEW.week_number BETWEEN 1 AND 7) AND (
-		            (s.t0 < s.t2 AND s.t0 <= new_t1 AND new_t1 <= s.t2 AND NEW.week_number = EXTRACT(ISODOW FROM s.date)::int ) 
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2  ) 
 		            OR (s.t0 >= s.t2 AND (
 		                (s.tm > s.t1 AND (
-		                    (new_t1 >= s.t0 AND EXTRACT(ISODOW FROM s.date - 1)::int = NEW.week_number) 
-		                    OR (s.t2 >= new_t1 AND NEW.week_number = EXTRACT(ISODOW FROM s.date)::int)
+		                    (new_req_time >= s.t0 ) 
+		                    OR (s.t2 >= new_req_time )
 		                )) 
 		                OR 
 		                (s.tm < s.t1 AND (
-		                    (new_t1 <= s.t2 AND EXTRACT(ISODOW FROM s.date)::int = NEW.week_number - 1) 
-		                    OR (new_t1 >= s.t0 AND NEW.week_number = EXTRACT(ISODOW FROM s.date)::int)
+		                    (new_req_time <= s.t2) 
+		                    OR (new_req_time >= s.t0)
 		                ))
 		            ))
 		        )
 		    )OR ((NEW.week_number = 8) AND (
-		            (s.t0 < s.t2 AND s.t0 <= new_t1 AND new_t1 <= s.t2) 
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2) 
 		            OR (s.t0 >= s.t2 AND (
 		                (s.tm > s.t1 AND (
-		                    (new_t1 >= s.t0) 
-		                    OR (s.t2 >= new_t1)
+		                    (new_req_time >= s.t0) 
+		                    OR (s.t2 >= new_req_time)
 		                )) 
 		                OR 
 		                (s.tm < s.t1 AND (
-		                    (new_t1 <= s.t2) 
-		                    OR (new_t1 >= s.t0)
+		                    (new_req_time <= s.t2) 
+		                    OR (new_req_time >= s.t0)
+		                ))
+		            ))
+		        )
+		    ))) 
+		    OR 
+		    (
+		        (s.week_number BETWEEN 1 AND 7) 
+		        AND ((NEW.week_number = 0 AND (
+		            (s.date <= NEW.date AND s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (s.date-1 <= NEW.date AND new_req_time >= s.t0 AND s.week_number = EXTRACT(ISODOW FROM NEW.date+1)::int ) 
+		                    OR (s.date <= NEW.date AND s.t2 >= new_req_time AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (s.date +1<= NEW.date AND new_req_time <= s.t2 AND s.week_number = EXTRACT(ISODOW FROM NEW.date - 1)::int) 
+		                    OR (s.date <= NEW.date AND new_req_time >= s.t0 AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number BETWEEN 1 AND 7) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND new.week_number = s.week_number ) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0 AND s.week_number = mod(new.week_number + 1, 7)) 
+		                    OR (s.t2 >= new_req_time AND new.week_number = s.week_number)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2 AND s.week_number = mod(new.week_number - 1, 7)) 
+		                    OR (new_req_time >= s.t0 AND new.week_number = s.week_number)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number = 8) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0) 
+		                    OR (s.t2 >= new_req_time)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2) 
+		                    OR (new_req_time >= s.t0)
+		                ))
+		            ))
+		        )
+		    ))) 
+		    OR 
+		    (
+		        (s.week_number = 0) 
+		        AND ((NEW.week_number = 0 AND (
+		            (s.date <= NEW.date AND s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND new_req_date = s.date) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (s.date -1<= NEW.date AND new_req_time >= s.t0 AND s.date = new_req_date + 1) 
+		                    OR (s.date <= NEW.date AND s.t2 >= new_req_time AND new_req_date = s.date)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (s.date +1<= NEW.date AND new_req_time <= s.t2 AND s.date = new_req_date - 1) 
+		                    OR (s.date <= NEW.date AND new_req_time >= s.t0 AND new_req_date = s.date)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number BETWEEN 1 AND 7) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND new.week_number = EXTRACT(ISODOW FROM s.date)::int ) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0 AND EXTRACT(ISODOW FROM s.date-1)::int = new.week_number) 
+		                    OR (s.t2 >= new_req_time AND new.week_number = EXTRACT(ISODOW FROM s.date)::int)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2 AND EXTRACT(ISODOW FROM s.date + 1)::int = new.week_number) 
+		                    OR (new_req_time >= s.t0 AND new.week_number = EXTRACT(ISODOW FROM s.date)::int)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number = 8) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0) 
+		                    OR (s.t2 >= new_req_time)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2) 
+		                    OR (new_req_time >= s.t0)
 		                ))
 		            ))
 		        )
 		    )))
-        OR
-        -- CASE 2: EXISTING schedule is WEEKLY (week_number 1-7)
-        (s.week_number BETWEEN 1 AND 7) AND (
-            -- Case 2.1: NEW is ONE-TIME (1-7 vs 0) - Handle all 4 time boundary combinations
-            (new_week_number = 0 AND s.week_number = EXTRACT(ISODOW FROM new_date)::int AND new_date >= s.date AND (
-                -- Combination 1: Both normal time ranges (s.t0 < s.t2 AND new_t0 < new_t2)
-                (s.t0 < s.t2 AND new_t0 < new_t2 AND NOT (new_t2 <= s.t0 OR new_t0 >= s.t2))
-                OR
-                -- Combination 2: Existing normal, NEW crosses midnight (s.t0 < s.t2 AND new_t0 >= new_t2)
-                (s.t0 < s.t2 AND new_t0 >= new_t2 AND (
-                    (new_tm > new_t1 AND (s.t0 >= new_t0 OR s.t2 >= new_t0))
-                    OR (new_tm < new_t1 AND (s.t0 <= new_t2 OR s.t0 >= new_t0))
-                ))
-                OR
-                -- Combination 3: Existing crosses midnight, NEW normal (s.t0 >= s.t2 AND new_t0 < new_t2)
-                (s.t0 >= s.t2 AND new_t0 < new_t2 AND (
-                    (s.tm > s.t1 AND (new_t0 >= s.t0 OR new_t2 >= s.t0))
-                    OR (s.tm < s.t1 AND (new_t0 <= s.t2 OR new_t0 >= s.t0))
-                ))
-                OR
-                -- Combination 4: Both cross midnight (s.t0 >= s.t2 AND new_t0 >= new_t2)
-                (s.t0 >= s.t2 AND new_t0 >= new_t2 AND (
-                    (s.tm > s.t1 AND new_tm > new_t1 AND (new_t0 >= s.t0 OR s.t0 >= new_t0))
-                    OR (s.tm < s.t1 AND new_tm < new_t1 AND (new_t2 >= s.t2 OR s.t2 >= new_t2))
-                    OR (s.tm > s.t1 AND new_tm < new_t1)
-                    OR (s.tm < s.t1 AND new_tm > new_t1)
-                ))
-            ))
-            OR 
-            -- Case 2.2: NEW is also WEEKLY (1-7 vs 1-7) - Handle all 4 time boundary combinations
-            (new_week_number BETWEEN 1 AND 7 AND s.week_number = new_week_number AND ((s.date <= new_date) OR (new_date <= s.date)) AND (
-                -- Combination 1: Both normal time ranges (s.t0 < s.t2 AND new_t0 < new_t2)
-                (s.t0 < s.t2 AND new_t0 < new_t2 AND NOT (new_t2 <= s.t0 OR new_t0 >= s.t2))
-                OR
-                -- Combination 2: Existing normal, NEW crosses midnight (s.t0 < s.t2 AND new_t0 >= new_t2)
-                (s.t0 < s.t2 AND new_t0 >= new_t2 AND (
-                    (new_tm > new_t1 AND (s.t0 >= new_t0 OR s.t2 >= new_t0))
-                    OR (new_tm < new_t1 AND (s.t0 <= new_t2 OR s.t0 >= new_t0))
-                ))
-                OR
-                -- Combination 3: Existing crosses midnight, NEW normal (s.t0 >= s.t2 AND new_t0 < new_t2)
-                (s.t0 >= s.t2 AND new_t0 < new_t2 AND (
-                    (s.tm > s.t1 AND (new_t0 >= s.t0 OR new_t2 >= s.t0))
-                    OR (s.tm < s.t1 AND (new_t0 <= s.t2 OR new_t0 >= s.t0))
-                ))
-                OR
-                -- Combination 4: Both cross midnight (s.t0 >= s.t2 AND new_t0 >= new_t2)
-                (s.t0 >= s.t2 AND new_t0 >= new_t2 AND (
-                    (s.tm > s.t1 AND new_tm > new_t1 AND (new_t0 >= s.t0 OR s.t0 >= new_t0))
-                    OR (s.tm < s.t1 AND new_tm < new_t1 AND (new_t2 >= s.t2 OR s.t2 >= new_t2))
-                    OR (s.tm > s.t1 AND new_tm < new_t1)
-                    OR (s.tm < s.t1 AND new_tm > new_t1)
-                ))
-            ))
-            OR 
-            -- Case 2.3: NEW is DAILY (1-7 vs 8) - Handle all 4 time boundary combinations
-            (new_week_number = 8 AND s.date >= new_date AND (
-                -- Combination 1: Both normal time ranges (s.t0 < s.t2 AND new_t0 < new_t2)
-                (s.t0 < s.t2 AND new_t0 < new_t2 AND NOT (new_t2 <= s.t0 OR new_t0 >= s.t2))
-                OR
-                -- Combination 2: Existing normal, NEW crosses midnight (s.t0 < s.t2 AND new_t0 >= new_t2)
-                (s.t0 < s.t2 AND new_t0 >= new_t2 AND (
-                    (new_tm > new_t1 AND (s.t0 >= new_t0 OR s.t2 >= new_t0))
-                    OR (new_tm < new_t1 AND (s.t0 <= new_t2 OR s.t0 >= new_t0))
-                ))
-                OR
-                -- Combination 3: Existing crosses midnight, NEW normal (s.t0 >= s.t2 AND new_t0 < new_t2)
-                (s.t0 >= s.t2 AND new_t0 < new_t2 AND (
-                    (s.tm > s.t1 AND (new_t0 >= s.t0 OR new_t2 >= s.t0))
-                    OR (s.tm < s.t1 AND (new_t0 <= s.t2 OR new_t0 >= s.t0))
-                ))
-                OR
-                -- Combination 4: Both cross midnight (s.t0 >= s.t2 AND new_t0 >= new_t2)
-                (s.t0 >= s.t2 AND new_t0 >= new_t2 AND (
-                    (s.tm > s.t1 AND new_tm > new_t1 AND (new_t0 >= s.t0 OR s.t0 >= new_t0))
-                    OR (s.tm < s.t1 AND new_tm < new_t1 AND (new_t2 >= s.t2 OR s.t2 >= new_t2))
-                    OR (s.tm > s.t1 AND new_tm < new_t1)
-                    OR (s.tm < s.t1 AND new_tm > new_t1)
-                ))
-            ))
-        )
-        OR
-        -- CASE 3: EXISTING schedule is DAILY (week_number = 8)
-        (s.week_number = 8) AND (
-            -- Case 3.1: NEW is ONE-TIME (8 vs 0) - Handle all 4 time boundary combinations
-            (new_week_number = 0 AND new_date >= s.date AND (
-                -- Combination 1: Both normal time ranges (s.t0 < s.t2 AND new_t0 < new_t2)
-                (s.t0 < s.t2 AND new_t0 < new_t2 AND NOT (new_t2 <= s.t0 OR new_t0 >= s.t2))
-                OR
-                -- Combination 2: Existing normal, NEW crosses midnight (s.t0 < s.t2 AND new_t0 >= new_t2)
-                (s.t0 < s.t2 AND new_t0 >= new_t2 AND (
-                    (new_tm > new_t1 AND (s.t0 >= new_t0 OR s.t2 >= new_t0))
-                    OR (new_tm < new_t1 AND (s.t0 <= new_t2 OR s.t0 >= new_t0))
-                ))
-                OR
-                -- Combination 3: Existing crosses midnight, NEW normal (s.t0 >= s.t2 AND new_t0 < new_t2)
-                (s.t0 >= s.t2 AND new_t0 < new_t2 AND (
-                    (s.tm > s.t1 AND (new_t0 >= s.t0 OR new_t2 >= s.t0))
-                    OR (s.tm < s.t1 AND (new_t0 <= s.t2 OR new_t0 >= s.t0))
-                ))
-                OR
-                -- Combination 4: Both cross midnight (s.t0 >= s.t2 AND new_t0 >= new_t2)
-                (s.t0 >= s.t2 AND new_t0 >= new_t2 AND (
-                    (s.tm > s.t1 AND new_tm > new_t1 AND (new_t0 >= s.t0 OR s.t0 >= new_t0))
-                    OR (s.tm < s.t1 AND new_tm < new_t1 AND (new_t2 >= s.t2 OR s.t2 >= new_t2))
-                    OR (s.tm > s.t1 AND new_tm < new_t1)
-                    OR (s.tm < s.t1 AND new_tm > new_t1)
-                ))
-            ))
-            OR 
-            -- Case 3.2: NEW is WEEKLY (8 vs 1-7) - Handle all 4 time boundary combinations
-            (new_week_number BETWEEN 1 AND 7 AND s.date >= new_date AND (
-                -- Combination 1: Both normal time ranges (s.t0 < s.t2 AND new_t0 < new_t2)
-                (s.t0 < s.t2 AND new_t0 < new_t2 AND NOT (new_t2 <= s.t0 OR new_t0 >= s.t2))
-                OR
-                -- Combination 2: Existing normal, NEW crosses midnight (s.t0 < s.t2 AND new_t0 >= new_t2)
-                (s.t0 < s.t2 AND new_t0 >= new_t2 AND (
-                    (new_tm > new_t1 AND (s.t0 >= new_t0 OR s.t2 >= new_t0))
-                    OR (new_tm < new_t1 AND (s.t0 <= new_t2 OR s.t0 >= new_t0))
-                ))
-                OR
-                -- Combination 3: Existing crosses midnight, NEW normal (s.t0 >= s.t2 AND new_t0 < new_t2)
-                (s.t0 >= s.t2 AND new_t0 < new_t2 AND (
-                    (s.tm > s.t1 AND (new_t0 >= s.t0 OR new_t2 >= s.t0))
-                    OR (s.tm < s.t1 AND (new_t0 <= s.t2 OR new_t0 >= s.t0))
-                ))
-                OR
-                -- Combination 4: Both cross midnight (s.t0 >= s.t2 AND new_t0 >= new_t2)
-                (s.t0 >= s.t2 AND new_t0 >= new_t2 AND (
-                    (s.tm > s.t1 AND new_tm > new_t1 AND (new_t0 >= s.t0 OR s.t0 >= new_t0))
-                    OR (s.tm < s.t1 AND new_tm < new_t1 AND (new_t2 >= s.t2 OR s.t2 >= new_t2))
-                    OR (s.tm > s.t1 AND new_tm < new_t1)
-                    OR (s.tm < s.t1 AND new_tm > new_t1)
-                ))
-            ))
-            OR 
-            -- Case 3.3: NEW is also DAILY (8 vs 8) - Handle all 4 time boundary combinations
-            (new_week_number = 8 AND ((s.date <= new_date) OR (new_date <= s.date)) AND (
-                -- Combination 1: Both normal time ranges (s.t0 < s.t2 AND new_t0 < new_t2)
-                (s.t0 < s.t2 AND new_t0 < new_t2 AND NOT (new_t2 <= s.t0 OR new_t0 >= s.t2))
-                OR
-                -- Combination 2: Existing normal, NEW crosses midnight (s.t0 < s.t2 AND new_t0 >= new_t2)
-                (s.t0 < s.t2 AND new_t0 >= new_t2 AND (
-                    (new_tm > new_t1 AND (s.t0 >= new_t0 OR s.t2 >= new_t0))
-                    OR (new_tm < new_t1 AND (s.t0 <= new_t2 OR s.t0 >= new_t0))
-                ))
-                OR
-                -- Combination 3: Existing crosses midnight, NEW normal (s.t0 >= s.t2 AND new_t0 < new_t2)
-                (s.t0 >= s.t2 AND new_t0 < new_t2 AND (
-                    (s.tm > s.t1 AND (new_t0 >= s.t0 OR new_t2 >= s.t0))
-                    OR (s.tm < s.t1 AND (new_t0 <= s.t2 OR new_t0 >= s.t0))
-                ))
-                OR
-                -- Combination 4: Both cross midnight (s.t0 >= s.t2 AND new_t0 >= new_t2)
-                (s.t0 >= s.t2 AND new_t0 >= new_t2 AND (
-                    (s.tm > s.t1 AND new_tm > new_t1 AND (new_t0 >= s.t0 OR s.t0 >= new_t0))
-                    OR (s.tm < s.t1 AND new_tm < new_t1 AND (new_t2 >= s.t2 OR s.t2 >= new_t2))
-                    OR (s.tm > s.t1 AND new_tm < new_t1)
-                    OR (s.tm < s.t1 AND new_tm > new_t1)
-                ))
-            ))
-        )
-    );
+		);
 
     IF clash_count > 0 THEN
-        RAISE EXCEPTION 'Schedule clash detected for tutor % - bidirectional conflict found (pattern %)', (
+        RAISE EXCEPTION 'Schedule clash detected for tutor % - time overlap found between % and existing schedule', (
             SELECT tutor_id FROM modules WHERE module_id = NEW.module_id
-        ), NEW.week_number;
+        ), NEW.time;
     END IF;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-
-
-
 -- Create trigger for schedule clash checking
 DROP TRIGGER IF EXISTS trg_check_schedule_clash ON schedules;
 CREATE TRIGGER trg_check_schedule_clash
     BEFORE INSERT OR UPDATE ON schedules
     FOR EACH ROW EXECUTE FUNCTION check_schedule_clash();
-
 -- Function to get upcoming schedules
 CREATE OR REPLACE FUNCTION get_upcoming_schedules(
     from_date DATE DEFAULT CURRENT_DATE,

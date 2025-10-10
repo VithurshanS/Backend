@@ -147,19 +147,53 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
         entityManager.flush();
     }
 
+    // Helper methods for creating schedules
+    private ScheduleEntity createSchedule(LocalDate date, LocalTime time, int duration, int weekNumber, RecurrentEntity recurrent) {
+        return ScheduleEntity.builder()
+            .module(testModule)
+            .date(date)
+            .time(time)
+            .duration(duration)
+            .weekNumber(weekNumber)
+            .recurrent(recurrent)
+            .build();
+    }
+
+    private ScheduleEntity createSpecificSchedule(LocalDate date, LocalTime time, int duration) {
+        return createSchedule(date, time, duration, 0, SpecificRecurrent);
+    }
+
+    private ScheduleEntity createWeeklySchedule(LocalDate date, LocalTime time, int duration, int weekNumber) {
+        return createSchedule(date, time, duration, weekNumber, WeeklyRecurrent);
+    }
+
+    private ScheduleEntity createDailySchedule(LocalDate date, LocalTime time, int duration) {
+        return createSchedule(date, time, duration, 8, DailyRecurrent);
+    }
+
+    private ScheduleEntity saveAndFlush(ScheduleEntity schedule) {
+        ScheduleEntity saved = scheduleRepository.save(schedule);
+        entityManager.flush();
+        return saved;
+    }
+
+    private void assertScheduleClash(ScheduleEntity newSchedule) {
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
     @Test
     public void testCreateSchedule() {
-        ScheduleEntity schedule = ScheduleEntity.builder()
-            .module(testModule)
-            .date(LocalDate.now().plusDays(1))
-            .time(LocalTime.of(10, 0))
-            .duration(60)
-            .weekNumber(1)
-            .recurrent(WeeklyRecurrent)
-            .build();
+        ScheduleEntity schedule = createWeeklySchedule(
+            LocalDate.now().plusDays(1), 
+            LocalTime.of(10, 0), 
+            60, 
+            1
+        );
 
-        ScheduleEntity savedSchedule = scheduleRepository.save(schedule);
-        entityManager.flush();
+        ScheduleEntity savedSchedule = saveAndFlush(schedule);
 
         assertThat(savedSchedule.getScheduleId()).isNotNull();
         assertThat(savedSchedule.getModule().getModuleId()).isEqualTo(testModule.getModuleId());
@@ -222,15 +256,13 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
 
     @Test
     public void testFindByModuleId() {
-        ScheduleEntity schedule = ScheduleEntity.builder()
-            .module(testModule)
-            .date(LocalDate.now().plusDays(1))
-            .time(LocalTime.of(10, 0))
-            .duration(60)
-            .build();
+        ScheduleEntity schedule = createSpecificSchedule(
+            LocalDate.now().plusDays(1), 
+            LocalTime.of(10, 0), 
+            60
+        );
 
-        scheduleRepository.save(schedule);
-        entityManager.flush();
+        saveAndFlush(schedule);
 
         List<ScheduleEntity> schedules = scheduleRepository.findByModule_ModuleId(testModule.getModuleId());
         assertThat(schedules).hasSize(1);
@@ -828,6 +860,7 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
         }).isInstanceOf(GenericJDBCException.class);
 
     }
+    
     @Test
     public void testClashSpecificDate_WeeklyDateBoundaryConditionMorning_1() {
         ScheduleEntity existingSchedule = ScheduleEntity.builder()
@@ -848,7 +881,7 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
             .time(LocalTime.of(23, 17))
             .duration(60)
             .weekNumber(7)
-            .recurrent(SpecificRecurrent)
+            .recurrent(WeeklyRecurrent)
             .build();
 
         assertThatThrownBy(() -> {
@@ -1185,7 +1218,1622 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
     }
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASH-WEEKLY-SPECIFIC++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashWeekly_SpecificDateNormalCondition_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10)) // from this date
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)   // every monday
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20)) //monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_SpecificDateNormalCondition_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(13, 1))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_SpecificDateNormalCondition_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20))
+            .time(LocalTime.of(14, 59))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashWeekly_SpecificDateBoundaryConditionNight_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_SpecificDateBoundaryConditionNight_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14))
+            .time(LocalTime.of(00, 10))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_SpecificDateBoundaryConditionNight_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 30))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashWeekly_SpecificDateBoundaryConditionMorning_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule4 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(23, 17))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule4);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_SpecificDateBoundaryConditionMorning_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 30))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_SpecificDateBoundaryConditionMorning_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 01))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASH-WEEKLY-WEEKLY+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashWeekly_WeeklyNormalCondition_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10)) // from this date
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)   // every monday
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20)) //monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_WeeklyNormalCondition_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(13, 1))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_WeeklyNormalCondition_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20))
+            .time(LocalTime.of(14, 59))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashWeekly_WeeklyBoundaryConditionNight_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_WeeklyBoundaryConditionNight_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14))
+            .time(LocalTime.of(00, 10))
+            .duration(60)
+            .weekNumber(2)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_WeeklyBoundaryConditionNight_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 30))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashWeekly_WeeklyBoundaryConditionMorning_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule4 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(23, 17))
+            .duration(60)
+            .weekNumber(7)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule4);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_WeeklyBoundaryConditionMorning_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 30))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_WeeklyBoundaryConditionMorning_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 01))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASH-WEEKLY-DAILY++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashWeekly_DailyNormalCondition_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10)) // from this date
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)   // every monday
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20)) //monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_DailyDateNormalCondition_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(13, 1))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_DailyNormalCondition_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20))
+            .time(LocalTime.of(14, 59))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashWeekly_DailyBoundaryConditionNight_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_DailyDateBoundaryConditionNight_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14))
+            .time(LocalTime.of(00, 10))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_DailyBoundaryConditionNight_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 30))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashWeekly_DailyBoundaryConditionMorning_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule4 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(23, 17))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule4);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_DailyDateBoundaryConditionMorning_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 30))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashWeekly_DailyBoundaryConditionMorning_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 01))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASH-DAILY-SPECIFIC++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashDaily_SpecificDateNormalCondition_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10)) // from this date
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20)) //monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_SpecificDateNormalCondition_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(13, 1))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_SpecificDateNormalCondition_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20))
+            .time(LocalTime.of(14, 59))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashDaily_SpecificDateBoundaryConditionNight_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_SpecificDateBoundaryConditionNight_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14))
+            .time(LocalTime.of(00, 10))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_SpecificDateBoundaryConditionNight_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 30))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashDaily_SpecificDateBoundaryConditionMorning_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule4 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(23, 17))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule4);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_SpecificDateBoundaryConditionMorning_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 30))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_SpecificDateBoundaryConditionMorning_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 01))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASH-DAILY-WEEKLY+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashDaily_WeeklyNormalCondition_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10)) // from this date
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20)) //monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaikly_WeeklyNormalCondition_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(13, 1))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_WeeklyNormalCondition_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20))
+            .time(LocalTime.of(14, 59))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashDaily_WeeklyBoundaryConditionNight_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_WeeklyBoundaryConditionNight_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14))
+            .time(LocalTime.of(00, 10))
+            .duration(60)
+            .weekNumber(2)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_WeeklyBoundaryConditionNight_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 30))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashDaily_WeeklyBoundaryConditionMorning_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule4 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(23, 17))
+            .duration(60)
+            .weekNumber(7)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule4);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_WeeklyBoundaryConditionMorning_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 30))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_WeeklyBoundaryConditionMorning_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)   // every monday
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 01))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASH-DAILY-DAILY++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashDaily_DailyNormalCondition_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10)) // from this date
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)  
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20)) //monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_DailyDateNormalCondition_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)  
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(13, 1))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_DailyNormalCondition_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)  
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20))
+            .time(LocalTime.of(14, 59))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashDaily_DailyBoundaryConditionNight_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)  
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_DailyDateBoundaryConditionNight_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)  
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14))
+            .time(LocalTime.of(00, 10))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_DailyBoundaryConditionNight_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)  
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 30))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashDaily_DailyBoundaryConditionMorning_1() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)  
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule4 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(23, 17))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule4);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_DailyDateBoundaryConditionMorning_2() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)  
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule2 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 30))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule2);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    @Test
+    public void testClashDaily_DailyBoundaryConditionMorning_3() {
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)  
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        ScheduleEntity newSchedule3 = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 01))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        assertThatThrownBy(() -> {
+            scheduleRepository.save(newSchedule3);
+            entityManager.flush();
+        }).isInstanceOf(GenericJDBCException.class);
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASHFREE-SPECIFIC-SPECIFIC++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
     @Test
     public void testClashfreeSpecificDate_SpecificDateNormalCondition(){
         ScheduleEntity existingSchedule = ScheduleEntity.builder()
@@ -1200,7 +2848,6 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
         scheduleRepository.save(existingSchedule);
         entityManager.flush();
 
-
         ScheduleEntity newSchedule2 = ScheduleEntity.builder()
             .module(testModule)
             .date(LocalDate.of(2025, 10, 13))
@@ -1214,14 +2861,15 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
         entityManager.flush();
         assertThat(savedNewSchedule2.getScheduleId()).isNotNull();
     }
+
     @Test
-    public void testClashfreeSpecificDate_SpecificDateNormalCondition1(){
+    public void testClashfreeSpecificDate_SpecificDateNormalCondition_2(){
         ScheduleEntity existingSchedule = ScheduleEntity.builder()
             .module(testModule)
             .date(LocalDate.of(2025, 10, 13))
             .time(LocalTime.of(14, 0))
             .duration(60)
-            .weekNumber(0) // 0 = specific date (one-time schedule)
+            .weekNumber(0)
             .recurrent(SpecificRecurrent)
             .build();
 
@@ -1232,6 +2880,35 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
             .module(testModule)
             .date(LocalDate.of(2025, 10, 13))
             .time(LocalTime.of(12, 50))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeSpecificDate_SpecificDateNormalCondition_3(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Different date - no clash possible
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14))
+            .time(LocalTime.of(14, 0))
             .duration(60)
             .weekNumber(0)
             .recurrent(SpecificRecurrent)
@@ -1256,7 +2933,6 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
         scheduleRepository.save(existingSchedule);
         entityManager.flush();
 
-
         ScheduleEntity newSchedule2 = ScheduleEntity.builder()
             .module(testModule)
             .date(LocalDate.of(2025, 10, 13))
@@ -1270,20 +2946,22 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
         entityManager.flush();
         assertThat(savedNewSchedule2.getScheduleId()).isNotNull();
     }
+
     @Test
-    public void testClashfreeSpecificDate_SpecificDateBoundaryCondition1(){
+    public void testClashfreeSpecificDate_SpecificDateBoundaryCondition_2(){
         ScheduleEntity existingSchedule = ScheduleEntity.builder()
             .module(testModule)
             .date(LocalDate.of(2025, 10, 13))
             .time(LocalTime.of(23, 15))
             .duration(60)
-            .weekNumber(0) // 0 = specific date (one-time schedule)
+            .weekNumber(0)
             .recurrent(SpecificRecurrent)
             .build();
 
         scheduleRepository.save(existingSchedule);
         entityManager.flush();
 
+        // Next day - no clash possible for specific dates
         ScheduleEntity newSchedule = ScheduleEntity.builder()
             .module(testModule)
             .date(LocalDate.of(2025, 10, 14))
@@ -1297,6 +2975,1154 @@ public class ScheduleRepoTests extends BaseRepositoryTest {
         entityManager.flush();
         assertThat(savedNewSchedule.getScheduleId()).isNotNull();
     }
+
+    @Test
+    public void testClashfreeSpecificDate_SpecificDateBoundaryCondition_3(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Previous day early time - no clash possible for specific dates
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(22, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASHFREE-SPECIFIC-WEEKLY++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashfreeSpecific_WeeklyNormalCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on different day of week - no clash
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14)) // Tuesday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(2) // Tuesday
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeSpecific_WeeklyNormalCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on same day but different time - no clash
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(1) // Monday
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeSpecific_WeeklyNormalCondition_3(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on different day with different time - no clash
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14)) // Tuesday
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(2) // Tuesday
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeSpecific_WeeklyBoundaryCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on next day
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14)) // Tuesday
+            .time(LocalTime.of(00, 30))
+            .duration(60)
+            .weekNumber(2) // Tuesday
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeSpecific_WeeklyBoundaryCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(01, 15))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on different day at safe time
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12)) // Sunday
+            .time(LocalTime.of(22, 30))
+            .duration(60)
+            .weekNumber(7) // Sunday
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASHFREE-SPECIFIC-DAILY++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashfreeSpecific_DailyNormalCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily starting before specific date
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeSpecific_DailyNormalCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with different time - no clash
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14))
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeSpecific_DailyNormalCondition_3(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with different time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(12, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeSpecific_DailyBoundaryCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with boundary time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(22, 10))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeSpecific_DailyBoundaryCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with different time - no clash
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14))
+            .time(LocalTime.of(02, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASHFREE-WEEKLY-SPECIFIC++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashfreeWeekly_SpecificNormalCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific on different day
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14)) // Tuesday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_SpecificNormalCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific on same day but different time
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 20)) // Monday next week
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_SpecificNormalCondition_3(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific before weekly start date
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 06)) // Monday previous week
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_SpecificBoundaryCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific on Tuesday early morning
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14)) // Tuesday
+            .time(LocalTime.of(00, 30))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_SpecificBoundaryCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific on Sunday night before
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12)) // Sunday
+            .time(LocalTime.of(23, 00))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASHFREE-WEEKLY-WEEKLY++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashfreeWeekly_WeeklyNormalCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on different day
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14)) // Tuesday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(2)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_WeeklyNormalCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on same day but different time
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_WeeklyNormalCondition_3(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on same day, early time
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(12, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_WeeklyBoundaryCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on Tuesday
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 14)) // Tuesday
+            .time(LocalTime.of(00, 30))
+            .duration(60)
+            .weekNumber(2)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_WeeklyBoundaryCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly on Sunday
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12)) // Sunday
+            .time(LocalTime.of(23, 00))
+            .duration(60)
+            .weekNumber(7)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASHFREE-WEEKLY-DAILY++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashfreeWeekly_DailyNormalCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with different time
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_DailyNormalCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with early time
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(12, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_DailyBoundaryCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with boundary time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(22, 10))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeWeekly_DailyBoundaryCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with boundary time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(01, 30))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASHFREE-DAILY-SPECIFIC++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashfreeDaily_SpecificNormalCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific before daily start date
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 9))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_SpecificNormalCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific with different time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 15))
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_SpecificNormalCondition_3(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific with early time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(12, 0))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_SpecificBoundaryCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific with boundary time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(22, 10))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_SpecificBoundaryCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Specific at different time - no clash
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 9))
+            .time(LocalTime.of(21, 30))
+            .duration(60)
+            .weekNumber(0)
+            .recurrent(SpecificRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASHFREE-DAILY-WEEKLY++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashfreeDaily_WeeklyNormalCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly with different time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_WeeklyNormalCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly with early time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(12, 0))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_WeeklyBoundaryCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly with boundary time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(22, 10))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_WeeklyBoundaryCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Weekly with boundary time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 13)) // Monday
+            .time(LocalTime.of(01, 30))
+            .duration(60)
+            .weekNumber(1)
+            .recurrent(WeeklyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++CLASHFREE-DAILY-DAILY++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @Test
+    public void testClashfreeDaily_DailyNormalCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with different time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(16, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_DailyNormalCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with early time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(12, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_DailyNormalCondition_3(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(14, 0))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily starting after existing daily with different time
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 15))
+            .time(LocalTime.of(16, 30))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_DailyBoundaryCondition_1(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(23, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with boundary time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(22, 10))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
+    @Test
+    public void testClashfreeDaily_DailyBoundaryCondition_2(){
+        ScheduleEntity existingSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 10))
+            .time(LocalTime.of(00, 15))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        scheduleRepository.save(existingSchedule);
+        entityManager.flush();
+
+        // Daily with boundary time that doesn't overlap
+        ScheduleEntity newSchedule = ScheduleEntity.builder()
+            .module(testModule)
+            .date(LocalDate.of(2025, 10, 12))
+            .time(LocalTime.of(01, 30))
+            .duration(60)
+            .weekNumber(8)
+            .recurrent(DailyRecurrent)
+            .build();
+
+        ScheduleEntity savedNewSchedule = scheduleRepository.save(newSchedule);
+        entityManager.flush();
+        assertThat(savedNewSchedule.getScheduleId()).isNotNull();
+    }
+
 
 
     // @Test

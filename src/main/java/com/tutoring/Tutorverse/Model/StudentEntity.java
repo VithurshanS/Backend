@@ -17,6 +17,8 @@ import java.util.UUID;
 
 public class StudentEntity {
 
+    public static final String Gender = null;
+
     @Id
     @Column(name = "student_id", nullable = false)
     private UUID studentId; 

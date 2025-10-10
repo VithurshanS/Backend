@@ -181,6 +181,30 @@ public class TutorProfileController {
         tutorProfileService.approveTutor(tutorId);
         return ResponseEntity.ok().build();
     }
+
+
+
+    @GetMapping("/countall")
+    public ResponseEntity<?> getTotalTutorCount() {
+        try {
+            Integer totalCount = tutorProfileService.getTutorCount();
+            Map<String, Integer> payload = new HashMap<>();
+            payload.put("totalCount", totalCount);
+            return ResponseEntity.ok().body(payload);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving tutor count: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/growthtutor/last-month")
+	public ResponseEntity<?> getLastMonthGrowth() {
+		try {
+			Map<String, Object> growthData = tutorProfileService.lastMonthGrowth();
+			return ResponseEntity.ok().body(growthData);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving growth data: " + e.getMessage());
+		}
+	}
     
 
 }

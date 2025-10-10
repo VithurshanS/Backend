@@ -92,4 +92,13 @@ public class AdminProfileController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllAdminProfiles() {
+        try {
+            return ResponseEntity.ok(adminService.getAllAdminProfiles());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }

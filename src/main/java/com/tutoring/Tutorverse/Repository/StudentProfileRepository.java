@@ -1,4 +1,5 @@
 package com.tutoring.Tutorverse.Repository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,5 +10,9 @@ public interface StudentProfileRepository extends JpaRepository<StudentEntity, U
     List<StudentEntity> findByIsActiveTrue();
 
     List<StudentEntity> findByIsActiveFalse();
+
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    long count();
 
 }

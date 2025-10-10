@@ -12,6 +12,7 @@ import com.tutoring.Tutorverse.Repository.ModulesRepository;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Model.ModuelsEntity;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -137,4 +138,15 @@ public class ModulesController {
         return ResponseEntity.ok(modules);
     }
 
+
+    
+	@GetMapping("/growthmodule/last-month")
+	public ResponseEntity<?> getLastMonthGrowth() {
+		try {
+			Map<String, Object> growthData = modulesService.lastMonthGrowth();
+			return ResponseEntity.ok().body(growthData);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving growth data: " + e.getMessage());
+		}
+	}
 }  

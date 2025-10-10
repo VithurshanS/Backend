@@ -29,4 +29,7 @@ public interface RatingRepository extends JpaRepository<RatingEntity, UUID> {
 
     // New direct finder using stored moduleId column
     List<RatingEntity> findAllByModuleId(UUID moduleId);
+
+    @Query("SELECT COALESCE(AVG(r.rating),0) FROM RatingEntity r")
+    Double findPlatformAverageRating();
 }

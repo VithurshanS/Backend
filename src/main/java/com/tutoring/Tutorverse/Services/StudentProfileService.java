@@ -11,7 +11,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.management.RuntimeErrorException;
@@ -107,11 +110,43 @@ public class StudentProfileService {
 		studentRepository.save(student);
 	}
 
+	public Map<String, Object> lastMonthGrowth(){
+		YearMonth currentMonth = YearMonth.now();
+		YearMonth lastMonth = currentMonth.minusMonths(1);
+		YearMonth previousMonth = currentMonth.minusMonths(2);
+
+		LocalDateTime lastStart = lastMonth.atDay(1).atStartOfDay();
+		LocalDateTime lastEnd = lastMonth.atEndOfMonth().atTime(23,59,59,999_999_999);
+
+		LocalDateTime prevStart = previousMonth.atDay(1).atStartOfDay();
+		LocalDateTime prevEnd = previousMonth.atEndOfMonth().atTime(23,59,59,999_999_999);
+
+		long lastCount = studentRepository.countByCreatedAtBetween(lastStart, lastEnd);
+		long prevCount = studentRepository.countByCreatedAtBetween(prevStart, prevEnd);
+
+		double growthPercent;
+		if (prevCount == 0) {
+			growthPercent = lastCount > 0 ? 100.0 : 0.0;
+		} else {
+			growthPercent = ((double)(lastCount - prevCount) / (double)prevCount) * 100.0;
+		}
+
+		return Map.of(
+			"lastMonth", lastMonth.toString(),
+			"previousMonth", previousMonth.toString(),
+			"lastMonthCount", lastCount,
+			"previousMonthCount", prevCount,
+			"growthPercent", growthPercent
+		);
+	}
+
 	public void unbanStudent(UUID id){
 		StudentEntity student = studentRepository.findById(id)
 			.orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
 		student.setIsActive(true);
 		studentRepository.save(student);
 	}
+
+	
 
 }

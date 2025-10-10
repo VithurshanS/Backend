@@ -8,6 +8,7 @@ import com.tutoring.Tutorverse.Repository.userRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -59,5 +60,9 @@ public class AdminProfileService {
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.setPassword(newPassword); // In real applications, hash the password before saving
         userRepo.save(user);
+    }
+
+    public List<AdminProfileEntity> getAllAdminProfiles() {
+        return adminRepo.findAll();
     }
 }

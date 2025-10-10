@@ -1,5 +1,8 @@
 package com.tutoring.Tutorverse.Services;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -147,6 +150,36 @@ public class ModulesService {
     public Integer getModuleCount() {
         return modulesRepository.findAll().size();
     }
+
+    public Map<String, Object> lastMonthGrowth(){
+		YearMonth currentMonth = YearMonth.now();
+		YearMonth lastMonth = currentMonth.minusMonths(1);
+		YearMonth previousMonth = currentMonth.minusMonths(2);
+
+		LocalDateTime lastStart = lastMonth.atDay(1).atStartOfDay();
+		LocalDateTime lastEnd = lastMonth.atEndOfMonth().atTime(23,59,59,999_999_999);
+
+		LocalDateTime prevStart = previousMonth.atDay(1).atStartOfDay();
+		LocalDateTime prevEnd = previousMonth.atEndOfMonth().atTime(23,59,59,999_999_999);
+
+		long lastCount = modulesRepository.countByCreatedAtBetween(lastStart, lastEnd);
+		long prevCount = modulesRepository.countByCreatedAtBetween(prevStart, prevEnd);
+
+		double growthPercent;
+		if (prevCount == 0) {
+			growthPercent = lastCount > 0 ? 100.0 : 0.0;
+		} else {
+			growthPercent = ((double)(lastCount - prevCount) / (double)prevCount) * 100.0;
+		}
+
+		return Map.of(
+			"lastMonth", lastMonth.toString(),
+			"previousMonth", previousMonth.toString(),
+			"lastMonthCount", lastCount,
+			"previousMonthCount", prevCount,
+			"growthPercent", growthPercent
+		);
+	}
 }
 
 //

@@ -48,6 +48,7 @@ CREATE TABLE tutor (
     last_name varchar(255) not null,
     phone_no varchar(255) not null unique,
     portfolio TEXT,
+    status varchar(255) check (status in ('PENDING','APPROVED','BANNED')),
     primary key (tutor_id)
 );
 
@@ -129,7 +130,7 @@ CREATE TABLE material (
 
 -- Create payments table
 CREATE TABLE payments (
-    amount float(53) not null,
+    amount FLOAT8 not null,
     created_at timestamp(6),
     updated_at timestamp(6),
     currency varchar(10) not null,
@@ -166,6 +167,34 @@ CREATE TABLE notification_tracking (
     unique (schedule_id, scheduled_date, scheduled_time)
 );
 
+-- Create wallet table
+CREATE TABLE wallet (
+    tutor_id uuid not null,
+    available_balance FLOAT8 not null,
+    updated_at timestamp(6) with time zone,
+    primary key (tutor_id)
+);
+
+-- Create withdrawals table
+CREATE TABLE withdrawals (
+    withdrawal_id uuid not null,
+    tutor_id uuid not null,
+    tutor_name varchar(255) not null,
+    amount FLOAT8 not null,
+    status varchar(255) not null,
+    method varchar(255) not null,
+    account_name varchar(255) not null,
+    bank_name varchar(255),
+    account_number varchar(255) not null,
+    notes TEXT,
+    created_at timestamp(6) with time zone not null,
+    processed_at timestamp(6) with time zone,
+    admin_id uuid,
+    transaction_id varchar(255),
+    paid_at timestamp(6) with time zone,
+    primary key (withdrawal_id)
+);
+
 -- Add foreign key constraints
 ALTER TABLE users ADD CONSTRAINT FKp56c1712k691lhsyewcssf40f FOREIGN KEY (role_id) REFERENCES roles;
 ALTER TABLE tutor ADD CONSTRAINT FKd1fg4ojpgb32brt8wat35o7ji FOREIGN KEY (tutor_id) REFERENCES users;
@@ -180,3 +209,6 @@ ALTER TABLE material ADD CONSTRAINT FK7epcyukx805hbitlsp5httga4 FOREIGN KEY (mod
 ALTER TABLE payments ADD CONSTRAINT FK5r1n1of8jsigg0xxfvvq11odw FOREIGN KEY (module_id) REFERENCES modules;
 ALTER TABLE payments ADD CONSTRAINT FKo0lgt74t3bsgmnfq54pcdew7y FOREIGN KEY (student_id) REFERENCES student;
 ALTER TABLE rating ADD CONSTRAINT FK1bfp8op46vayyf5yw015ipbm2 FOREIGN KEY (enrolment_id) REFERENCES enrollment;
+ALTER TABLE wallet ADD CONSTRAINT FKwallet_tutor_id FOREIGN KEY (tutor_id) REFERENCES tutor;
+ALTER TABLE withdrawals ADD CONSTRAINT FKwithdrawals_tutor_id FOREIGN KEY (tutor_id) REFERENCES tutor;
+ALTER TABLE withdrawals ADD CONSTRAINT FKwithdrawals_admin_id FOREIGN KEY (admin_id) REFERENCES users;

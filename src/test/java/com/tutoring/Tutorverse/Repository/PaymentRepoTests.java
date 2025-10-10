@@ -1,6 +1,9 @@
 package com.tutoring.Tutorverse.Repository;
 
+import org.hibernate.exception.ConstraintViolationException;
+import org.hibernate.exception.GenericJDBCException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -20,13 +23,14 @@ import java.util.UUID;
 import com.tutoring.Tutorverse.Model.*;
 import com.tutoring.Tutorverse.TestUtils.BaseRepositoryTest;
 
+import jakarta.persistence.PersistenceException;
 import jakarta.transaction.Transactional;
 
 @DataJpaTest
 @ActiveProfiles("test")
 @Transactional
 @Rollback(true)
-public class PaymentRepoTest extends BaseRepositoryTest {
+public class PaymentRepoTests extends BaseRepositoryTest {
 
     @Autowired
     private PaymentRepository paymentRepository;
@@ -164,7 +168,7 @@ public class PaymentRepoTest extends BaseRepositoryTest {
         assertThatThrownBy(() -> {
             paymentRepository.save(paymentWithoutStudentId);
             entityManager.flush();
-        }).isInstanceOf(DataIntegrityViolationException.class);
+        }).isInstanceOf(ConstraintViolationException.class);
 
         // Test missing moduleId
         PaymentEntity paymentWithoutModuleId = PaymentEntity.builder()
@@ -176,7 +180,7 @@ public class PaymentRepoTest extends BaseRepositoryTest {
         assertThatThrownBy(() -> {
             paymentRepository.save(paymentWithoutModuleId);
             entityManager.flush();
-        }).isInstanceOf(DataIntegrityViolationException.class);
+        }).isInstanceOf(GenericJDBCException.class);
 
         // Test missing amount
         PaymentEntity paymentWithoutAmount = PaymentEntity.builder()
@@ -188,7 +192,7 @@ public class PaymentRepoTest extends BaseRepositoryTest {
         assertThatThrownBy(() -> {
             paymentRepository.save(paymentWithoutAmount);
             entityManager.flush();
-        }).isInstanceOf(DataIntegrityViolationException.class);
+        }).isInstanceOf(GenericJDBCException.class);
 
         // Test missing orderId
         PaymentEntity paymentWithoutOrderId = PaymentEntity.builder()
@@ -200,7 +204,7 @@ public class PaymentRepoTest extends BaseRepositoryTest {
         assertThatThrownBy(() -> {
             paymentRepository.save(paymentWithoutOrderId);
             entityManager.flush();
-        }).isInstanceOf(DataIntegrityViolationException.class);
+        }).isInstanceOf(GenericJDBCException.class);
     }
 
     @Test
@@ -255,7 +259,7 @@ public class PaymentRepoTest extends BaseRepositoryTest {
         assertThatThrownBy(() -> {
             paymentRepository.save(payment2);
             entityManager.flush();
-        }).isInstanceOf(DataIntegrityViolationException.class);
+        }).isInstanceOf(ConstraintViolationException.class);
     }
 
     @Test

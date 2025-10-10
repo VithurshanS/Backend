@@ -20,92 +20,182 @@
 --     ('Art')
 -- ON CONFLICT DO NOTHING;
 
--- Function to check schedule clashes
+-- Function to check schedule clashes with comprehensive bidirectional logic
+-- This implements "square times complex" validation - checking both directions:
+-- 1. How EXISTING schedules conflict with NEW schedule
+-- 2. How NEW schedule conflicts with EXISTING schedules
+-- Covers all combinations of week_number patterns: 0 (one-time), 1-7 (weekly), 8 (daily)
 CREATE OR REPLACE FUNCTION check_schedule_clash()
 RETURNS TRIGGER AS $$
 DECLARE
     clash_count INT;
-    new_start_time TIME;
-    new_end_time TIME;
-    existing_start_time TIME;
-    existing_end_time TIME;
+    new_req_time TIME;
+    new_req_date DATE;
 BEGIN
-    -- Calculate actual start and end times for the new schedule
-    new_start_time := NEW.time;
-    new_end_time := NEW.time + (NEW.duration || ' minutes')::interval;
+    -- Use the new schedule's time and date for checking
+    new_req_time := NEW.time;
+    new_req_date := NEW.date;
 
+    -- Use the same sophisticated logic as find_matching_schedule function
+    WITH sched AS (
+        SELECT 
+            s.*,
+            (s.time - interval '1 hour') AS t0,
+            s.time AS t1,
+            (s.time + interval '1 hour') AS t2,
+            '12:00:00'::TIME as tm
+        FROM schedules s
+        JOIN modules m ON s.module_id = m.module_id
+        WHERE m.tutor_id = (
+                  SELECT m2.tutor_id
+                  FROM modules m2
+                  WHERE m2.module_id = NEW.module_id
+              )
+          -- exclude current schedule on update
+          AND s.schedule_id != COALESCE(NEW.schedule_id, '00000000-0000-0000-0000-000000000000'::uuid)
+    )
     SELECT COUNT(*)
     INTO clash_count
-    FROM schedules s
-    JOIN modules m ON s.module_id = m.module_id
-    WHERE m.tutor_id = (
-              SELECT m2.tutor_id
-              FROM modules m2
-              WHERE m2.module_id = NEW.module_id
-          )
-      -- exclude current schedule on update
-      AND s.schedule_id != COALESCE(NEW.schedule_id, '00000000-0000-0000-0000-000000000000'::uuid)
-      AND (
-          -- Schedule type matching conditions
-          (
-              -- One-time schedules: exact date match
-              (NEW.week_number = 0 AND s.week_number = 0 AND NEW.date = s.date)
-          )
-          OR (
-              -- Weekly schedules: same weekday
-              (NEW.week_number BETWEEN 1 AND 7 AND s.week_number BETWEEN 1 AND 7 
-               AND NEW.week_number = s.week_number)
-          )
-          OR (
-              -- Daily schedules: always clash potential
-              (NEW.week_number = 8 AND s.week_number = 8)
-          )
-          OR (
-              -- Mixed: daily vs weekly on matching day
-              ((NEW.week_number = 8 AND s.week_number BETWEEN 1 AND 7 
-                AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number)
-               OR (NEW.week_number BETWEEN 1 AND 7 AND s.week_number = 8
-                   AND NEW.week_number = EXTRACT(ISODOW FROM s.date)::int))
-          )
-          OR (
-              -- Mixed: one-time vs weekly on matching day
-              ((NEW.week_number = 0 AND s.week_number BETWEEN 1 AND 7
-                AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number)
-               OR (NEW.week_number BETWEEN 1 AND 7 AND s.week_number = 0
-                   AND NEW.week_number = EXTRACT(ISODOW FROM s.date)::int))
-          )
-          OR (
-              -- Mixed: one-time vs daily (check date ranges)
-              ((NEW.week_number = 0 AND s.week_number = 8 AND NEW.date >= s.date)
-               OR (NEW.week_number = 8 AND s.week_number = 0 AND s.date >= NEW.date))
-          )
-      )
-      AND (
-          -- Time overlap detection with boundary cases
-          -- Handle normal time ranges (no midnight crossing)
-          (new_start_time < new_end_time AND s.time < (s.time + (s.duration || ' minutes')::interval))
-          AND (
-              new_start_time < (s.time + (s.duration || ' minutes')::interval)
-              AND s.time < new_end_time
-          )
-          OR
-          -- Handle midnight crossing cases
-          (new_start_time >= new_end_time OR s.time >= (s.time + (s.duration || ' minutes')::interval))
-          AND (
-              -- New schedule crosses midnight
-              (new_start_time >= new_end_time AND (
-                  s.time >= new_start_time OR (s.time + (s.duration || ' minutes')::interval) <= new_end_time
-              ))
-              OR
-              -- Existing schedule crosses midnight  
-              (s.time >= (s.time + (s.duration || ' minutes')::interval) AND (
-                  new_start_time >= s.time OR new_end_time <= (s.time + (s.duration || ' minutes')::interval)
-              ))
-              OR
-              -- Both cross midnight - always overlap
-              (new_start_time >= new_end_time AND s.time >= (s.time + (s.duration || ' minutes')::interval))
-          )
-      );
+    FROM sched s
+    WHERE (
+		    (
+		        (s.week_number = 8) 
+		        AND ((NEW.week_number = 0 AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND s.date <= NEW.date) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0 AND s.date <= new_req_date + 1) 
+		                    OR (s.t2 >= new_req_time AND new_req_date >= s.date)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2 AND s.date <= new_req_date - 1) 
+		                    OR (new_req_time >= s.t0 AND new_req_date >= s.date)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number BETWEEN 1 AND 7) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2  ) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0 ) 
+		                    OR (s.t2 >= new_req_time )
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2) 
+		                    OR (new_req_time >= s.t0)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number = 8) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0) 
+		                    OR (s.t2 >= new_req_time)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2) 
+		                    OR (new_req_time >= s.t0)
+		                ))
+		            ))
+		        )
+		    ))) 
+		    OR 
+		    (
+		        (s.week_number BETWEEN 1 AND 7) 
+		        AND ((NEW.week_number = 0 AND (
+		            (s.date <= NEW.date AND s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (s.date-1 <= NEW.date AND new_req_time >= s.t0 AND s.week_number = EXTRACT(ISODOW FROM NEW.date+1)::int ) 
+		                    OR (s.date <= NEW.date AND s.t2 >= new_req_time AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (s.date +1<= NEW.date AND new_req_time <= s.t2 AND s.week_number = EXTRACT(ISODOW FROM NEW.date - 1)::int) 
+		                    OR (s.date <= NEW.date AND new_req_time >= s.t0 AND EXTRACT(ISODOW FROM NEW.date)::int = s.week_number)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number BETWEEN 1 AND 7) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND new.week_number = s.week_number ) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0 AND s.week_number = mod(new.week_number + 1, 7)) 
+		                    OR (s.t2 >= new_req_time AND new.week_number = s.week_number)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2 AND s.week_number = mod(new.week_number - 1, 7)) 
+		                    OR (new_req_time >= s.t0 AND new.week_number = s.week_number)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number = 8) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0) 
+		                    OR (s.t2 >= new_req_time)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2) 
+		                    OR (new_req_time >= s.t0)
+		                ))
+		            ))
+		        )
+		    ))) 
+		    OR 
+		    (
+		        (s.week_number = 0) 
+		        AND ((NEW.week_number = 0 AND (
+		            (s.date <= NEW.date AND s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND new_req_date = s.date) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (s.date -1<= NEW.date AND new_req_time >= s.t0 AND s.date = new_req_date + 1) 
+		                    OR (s.date <= NEW.date AND s.t2 >= new_req_time AND new_req_date = s.date)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (s.date +1<= NEW.date AND new_req_time <= s.t2 AND s.date = new_req_date - 1) 
+		                    OR (s.date <= NEW.date AND new_req_time >= s.t0 AND new_req_date = s.date)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number BETWEEN 1 AND 7) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2 AND new.week_number = EXTRACT(ISODOW FROM s.date)::int ) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0 AND EXTRACT(ISODOW FROM s.date-1)::int = new.week_number) 
+		                    OR (s.t2 >= new_req_time AND new.week_number = EXTRACT(ISODOW FROM s.date)::int)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2 AND EXTRACT(ISODOW FROM s.date + 1)::int = new.week_number) 
+		                    OR (new_req_time >= s.t0 AND new.week_number = EXTRACT(ISODOW FROM s.date)::int)
+		                ))
+		            ))
+		        )
+		    )OR ((NEW.week_number = 8) AND (
+		            (s.t0 < s.t2 AND s.t0 <= new_req_time AND new_req_time <= s.t2) 
+		            OR (s.t0 >= s.t2 AND (
+		                (s.tm > s.t1 AND (
+		                    (new_req_time >= s.t0) 
+		                    OR (s.t2 >= new_req_time)
+		                )) 
+		                OR 
+		                (s.tm < s.t1 AND (
+		                    (new_req_time <= s.t2) 
+		                    OR (new_req_time >= s.t0)
+		                ))
+		            ))
+		        )
+		    )))
+		);
 
     IF clash_count > 0 THEN
         RAISE EXCEPTION 'Schedule clash detected for tutor % - time overlap found between % and existing schedule', (
@@ -122,7 +212,6 @@ DROP TRIGGER IF EXISTS trg_check_schedule_clash ON schedules;
 CREATE TRIGGER trg_check_schedule_clash
     BEFORE INSERT OR UPDATE ON schedules
     FOR EACH ROW EXECUTE FUNCTION check_schedule_clash();
-
 -- Function to get upcoming schedules
 CREATE OR REPLACE FUNCTION get_upcoming_schedules(
     from_date DATE DEFAULT CURRENT_DATE,

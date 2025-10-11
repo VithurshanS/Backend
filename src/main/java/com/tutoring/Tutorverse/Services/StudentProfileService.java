@@ -147,6 +147,9 @@ public class StudentProfileService {
 		studentRepository.save(student);
 	}
 
-	
-
+	public String getStudentImageUrl(UUID id) {
+		StudentEntity student = studentRepository.findById(id)
+			.orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
+		return student.getImageUrl();
+	}
 }

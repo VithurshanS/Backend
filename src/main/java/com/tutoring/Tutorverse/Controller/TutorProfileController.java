@@ -205,6 +205,34 @@ public class TutorProfileController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving growth data: " + e.getMessage());
 		}
 	}
+
+    @GetMapping("/tutorname")
+    public ResponseEntity<?> getTutorNameById(@RequestParam UUID tutorId) {
+        try {
+            String tutorName = tutorProfileService.getTutorNameById(tutorId);
+            Map<String, String> response = new HashMap<>();
+            response.put("tutorName", tutorName);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving tutor name: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/image")
+    public ResponseEntity<?> getTutorImageUrl(HttpServletRequest req) {
+        try {
+            UUID userId = userService.getUserIdFromRequest(req);
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
+            }
+            String imageUrl = tutorProfileService.getTutorImageUrl(userId);
+            Map<String, String> response = new HashMap<>();
+            response.put("imageUrl", imageUrl);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving tutor image URL: " + e.getMessage());
+        }
+    }
     
 
 }

@@ -3,6 +3,7 @@ package com.tutoring.Tutorverse.Admin.Services;
 import com.tutoring.Tutorverse.Admin.Dto.AdminProfileDto;
 import com.tutoring.Tutorverse.Admin.Model.AdminProfileEntity;
 import com.tutoring.Tutorverse.Admin.Repository.AdminProfileRepository;
+import com.tutoring.Tutorverse.Model.StudentEntity;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.userRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,4 +66,10 @@ public class AdminProfileService {
     public List<AdminProfileEntity> getAllAdminProfiles() {
         return adminRepo.findAll();
     }
+
+    public String getAdmintImageUrl(UUID id) {
+		AdminProfileEntity admin = adminRepo.findById(id)
+			.orElseThrow(() -> new RuntimeException("Admin not found with id: " + id));
+		return admin.getImageUrl();
+	}
 }

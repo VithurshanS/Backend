@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.tutoring.Tutorverse.Dto.TutorProfileDto;
+import com.tutoring.Tutorverse.Model.StudentEntity;
 import com.tutoring.Tutorverse.Model.TutorEntity;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.TutorProfileRepository;
@@ -180,6 +181,22 @@ public class TutorProfileService {
 			"growthPercent", growthPercent
 		);
 	}
+
+
+    public String getTutorNameById(UUID tutorId) {
+        TutorEntity tutor = tutorRepository.findById(tutorId)
+                .orElseThrow(() -> new RuntimeException("Tutor profile not found"));
+        return tutor.getFirstName() + " " + tutor.getLastName();
+
+
+}
+
+public String getTutorImageUrl(UUID id) {
+		TutorEntity tutor = tutorRepository.findById(id)
+			.orElseThrow(() -> new RuntimeException("Tutor not found with id: " + id));
+		return tutor.getImage();
+	}
+
 
 
 }

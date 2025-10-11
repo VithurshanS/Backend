@@ -1,6 +1,14 @@
 package com.tutoring.Tutorverse.Admin.Services;
 
 import com.tutoring.Tutorverse.Admin.Dto.AnalyticsOverviewDto;
+import com.tutoring.Tutorverse.Admin.Dto.ModulesSummaryDto;
+import com.tutoring.Tutorverse.Admin.Dto.RatingsSummaryDto;
+import com.tutoring.Tutorverse.Admin.Dto.RevenueSummaryDto;
+import com.tutoring.Tutorverse.Admin.Dto.SchedulesSummaryDto;
+import com.tutoring.Tutorverse.Admin.Dto.StudentsSummaryDto;
+import com.tutoring.Tutorverse.Admin.Dto.TopModulesDto;
+import com.tutoring.Tutorverse.Admin.Dto.TutorsSummaryDto;
+import com.tutoring.Tutorverse.Admin.Dto.UsersSummaryDto;
 import com.tutoring.Tutorverse.Model.ModuelsEntity;
 import com.tutoring.Tutorverse.Model.TutorEntity;
 import com.tutoring.Tutorverse.Repository.*;
@@ -27,64 +35,66 @@ public class AnaliticalService {
 	@Autowired private RatingRepository ratingRepo;
 	@Autowired private ScheduleRepository scheduleRepo;
 
-	public AnalyticsOverviewDto getOverview() {
-		AnalyticsOverviewDto dto = new AnalyticsOverviewDto();
 
-		LocalDateTime now = LocalDateTime.now();
-		LocalDateTime last7 = now.minusDays(7);
-		LocalDateTime last30 = now.minusDays(30);
-
-		// Users and roles
+	// Segmented getters for smaller payloads
+	public UsersSummaryDto getUsersSummary() {
 		long usersTotal = userRepo.count();
 		long admins = userRepo.countByRoleName("ADMIN");
 		long tutors = userRepo.countByRoleName("TUTOR");
 		long students = userRepo.countByRoleName("STUDENT");
 		long users2fa = userRepo.countWithTwoFactor();
-		dto.users = new AnalyticsOverviewDto.CountBreakdown(usersTotal, 0, 0); // We don't track createdAt on users by repo method here
-		dto.admins = admins;
-		dto.tutors = tutors;
-		dto.students = students;
-		dto.usersWith2FA = users2fa;
+		return new UsersSummaryDto(usersTotal, admins, tutors, students, users2fa);
+	}
 
-		// Students active/inactive
-		dto.activeStudents = studentRepo.findByIsActiveTrue().size();
-		dto.inactiveStudents = studentRepo.findByIsActiveFalse().size();
+	public StudentsSummaryDto getStudentsSummary() {
+		long active = studentRepo.findByIsActiveTrue().size();
+		long inactive = studentRepo.findByIsActiveFalse().size();
+		return new StudentsSummaryDto(active, inactive);
+	}
 
-		// Tutors status
+	public TutorsSummaryDto getTutorsSummary() {
 		long tutorsApproved = tutorRepo.countByStatus(TutorEntity.Status.APPROVED);
 		long tutorsPending = tutorRepo.countByStatus(TutorEntity.Status.PENDING);
 		long tutorsBanned = tutorRepo.countByStatus(TutorEntity.Status.BANNED);
-		dto.tutorStatuses = new AnalyticsOverviewDto.TutorStatusCounts(tutorsApproved, tutorsPending, tutorsBanned);
+		return new TutorsSummaryDto(tutorsApproved, tutorsPending, tutorsBanned);
+	}
 
-		// Modules
+	public ModulesSummaryDto getModulesSummary() {
+		LocalDateTime now = LocalDateTime.now();
+		LocalDateTime last7 = now.minusDays(7);
+		LocalDateTime last30 = now.minusDays(30);
 		long modulesTotal = modulesRepo.count();
 		long modulesActive = modulesRepo.countByStatus(ModuelsEntity.ModuleStatus.Active);
 		long modulesLast30 = modulesRepo.countByCreatedAtBetween(last30, now);
 		long modulesLast7 = modulesRepo.countByCreatedAtBetween(last7, now);
-		dto.modules = new AnalyticsOverviewDto.CountBreakdown(modulesTotal, modulesLast30, modulesLast7);
-		dto.activeModules = modulesActive;
+		return new ModulesSummaryDto(modulesTotal, modulesActive, modulesLast30, modulesLast7);
+	}
 
-		// Enrollments
-		dto.enrollments = enrollRepo.count();
+	public long getEnrollmentsCount() {
+		return enrollRepo.count();
+	}
 
-		// Payments / Revenue
+	public RevenueSummaryDto getRevenueSummary() {
+		LocalDateTime now = LocalDateTime.now();
+		LocalDateTime last30 = now.minusDays(30);
 		Double totalRevenue = nvl(paymentRepo.sumAmountByStatus("SUCCESS"));
 		Double revenueLast30 = nvl(paymentRepo.sumAmountByStatusAndCreatedAtBetween("SUCCESS", last30, now));
-		dto.totalRevenue = totalRevenue;
-		dto.revenueLast30Days = revenueLast30;
-		dto.revenueLast6Months = buildRevenueTrend();
+		return new RevenueSummaryDto(totalRevenue, revenueLast30, buildRevenueTrend());
+	}
 
-		// Ratings
-		dto.averageRating = nvl(ratingRepo.findPlatformAverageRating());
+	public RatingsSummaryDto getRatingsSummary() {
+		double avg = nvl(ratingRepo.findPlatformAverageRating());
+		return new RatingsSummaryDto(avg);
+	}
 
-		// Upcoming schedules (next 30 days)
+	public SchedulesSummaryDto getSchedulesSummary() {
 		long upcoming = scheduleRepo.findByDateBetween(LocalDate.now(), LocalDate.now().plusDays(30)).size();
-		dto.upcomingSchedules = upcoming;
+		long enrollments = enrollRepo.count();
+		return new SchedulesSummaryDto(upcoming, enrollments);
+	}
 
-		// Top modules by revenue (simple: sum per module and pick top 5)
-		dto.topModulesByRevenue = topModulesByRevenue(5);
-
-		return dto;
+	public TopModulesDto getTopModulesByRevenue(int limit) {
+		return new TopModulesDto(topModulesByRevenue(limit));
 	}
 
 	private List<AnalyticsOverviewDto.RevenueTrendPoint> buildRevenueTrend() {

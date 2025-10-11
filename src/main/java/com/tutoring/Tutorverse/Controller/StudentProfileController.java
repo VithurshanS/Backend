@@ -176,5 +176,21 @@ public class StudentProfileController {
 		}
 	}
 	
+	@GetMapping("/image")
+	public ResponseEntity<?> getStudentImageUrl(HttpServletRequest req) {
+		try {
+			UUID userId = userService.getUserIdFromRequest(req);
+			if (userId == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
+			}
+			String imageUrl = studentProfileService.getStudentImageUrl(userId);
+			Map<String, String> payload = new HashMap<>();
+			payload.put("imageUrl", imageUrl);
+			return ResponseEntity.ok().body(payload);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving student image URL: " + e.getMessage());
+		}
+	}
+
 
 }

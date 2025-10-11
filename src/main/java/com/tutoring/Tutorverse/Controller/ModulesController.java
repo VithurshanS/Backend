@@ -149,4 +149,23 @@ public class ModulesController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving growth data: " + e.getMessage());
 		}
 	}
+
+    @GetMapping("/recommendedmodules")
+    public ResponseEntity<List<ModuelsDto>> getRecommendedModulesToMatchingDomain(@RequestParam String domain,HttpServletRequest req) {
+        UUID userId = userService.getUserIdFromRequest(req);
+        List<ModuelsDto> modules = modulesService.getRecommendedModules(domain,userId);
+        return ResponseEntity.ok(modules);
+    }
+
+    @GetMapping("/randomrecommendedmodules")
+    public ResponseEntity<List<ModuelsDto>> getRandomRecommendedModules(HttpServletRequest req) {
+        try {
+            UUID userId = userService.getUserIdFromRequest(req);
+            List<ModuelsDto> modules = modulesService.getRandomRecommendedModules(userId);
+            return ResponseEntity.ok(modules);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
+        }
+    }
 }  

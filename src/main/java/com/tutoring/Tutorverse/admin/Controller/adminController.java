@@ -1,4 +1,4 @@
-package com.tutoring.Tutorverse.admin.Controller;
+package com.tutoring.Tutorverse.Admin.Controller;
 
 import com.tutoring.Tutorverse.Dto.WithdrawalDto;
 import com.tutoring.Tutorverse.Model.TutorEntity;
@@ -9,7 +9,7 @@ import com.tutoring.Tutorverse.Services.UserService;
 import com.tutoring.Tutorverse.Services.TutorProfileService;
 import com.tutoring.Tutorverse.Services.WalletService;
 import com.tutoring.Tutorverse.Repository.userRepository;
-import com.tutoring.Tutorverse.admin.Services.adminService;
+import com.tutoring.Tutorverse.Admin.Services.adminService;
 import com.tutoring.Tutorverse.Services.WalletService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;

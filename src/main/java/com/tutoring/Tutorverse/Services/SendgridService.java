@@ -32,8 +32,11 @@ public class SendgridService {
     }
 
 
-    public void sendReminderEmail(String toEmail, String moduleName, LocalDateTime startTime) {
-        Email from = new Email("tiran2018v@gmail.com");
+    public void sendReminderEmail(String toEmail, String moduleName, LocalDateTime startTime) throws IOException {
+        System.out.println("🔧 SendGrid API Key configured: " + (sendGridApiKey != null && !sendGridApiKey.isEmpty() ? "YES" : "NO"));
+        System.out.println("🔧 SendGrid API Key length: " + (sendGridApiKey != null ? sendGridApiKey.length() : "NULL"));
+        
+        Email from = new Email("tutorwars236@gmail.com");
         Email to = new Email(toEmail);
         String subject = "Reminder: Your class starts in 1 hour!";
 
@@ -47,13 +50,18 @@ public class SendgridService {
 
         SendGrid sg = new SendGrid(sendGridApiKey);
         Request request = new Request();
-        try {
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            sg.api(request);
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        
+        request.setMethod(Method.POST);
+        request.setEndpoint("mail/send");
+        request.setBody(mail.build());
+        
+        Response response = sg.api(request);
+        System.out.println("📧 SendGrid Response Code: " + response.getStatusCode());
+        System.out.println("📧 SendGrid Response Body: " + response.getBody());
+        System.out.println("📧 SendGrid Response Headers: " + response.getHeaders());
+        
+        if (response.getStatusCode() >= 400) {
+            throw new IOException("SendGrid API Error: " + response.getStatusCode() + " - " + response.getBody());
         }
     }
 

@@ -13,8 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+
 
 @RestController
 @RequestMapping("/api/student-profile")
@@ -153,5 +152,45 @@ public class StudentProfileController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error unbanning student: " + e.getMessage());
 		}
 	}
+
+
+	@GetMapping("/countall")
+	public ResponseEntity<?> getTotalStudentCount() {
+		try {
+			Integer totalCount = studentProfileService.getStudentCount();
+			Map<String, Integer> payload = new HashMap<>();
+			payload.put("totalCount", totalCount);
+			return ResponseEntity.ok().body(payload);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving total student count: " + e.getMessage());
+		}
+	}
+
+	@GetMapping("/growthstudent/last-month")
+	public ResponseEntity<?> getLastMonthGrowth() {
+		try {
+			Map<String, Object> growthData = studentProfileService.lastMonthGrowth();
+			return ResponseEntity.ok().body(growthData);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving growth data: " + e.getMessage());
+		}
+	}
+	
+	@GetMapping("/image")
+	public ResponseEntity<?> getStudentImageUrl(HttpServletRequest req) {
+		try {
+			UUID userId = userService.getUserIdFromRequest(req);
+			if (userId == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
+			}
+			String imageUrl = studentProfileService.getStudentImageUrl(userId);
+			Map<String, String> payload = new HashMap<>();
+			payload.put("imageUrl", imageUrl);
+			return ResponseEntity.ok().body(payload);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving student image URL: " + e.getMessage());
+		}
+	}
+
 
 }

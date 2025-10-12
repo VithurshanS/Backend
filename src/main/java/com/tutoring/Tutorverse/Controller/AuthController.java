@@ -52,13 +52,11 @@ public class AuthController {
 
     @Autowired
     private JwtServices jwtServices;
+    @Autowired
+    private com.tutoring.Tutorverse.Services.TOTPService totpService;
 
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    @GetMapping("/home")
-    public String home(Authentication authentication) {
-        return "home";
-    }
 
 
 
@@ -82,6 +80,23 @@ public class AuthController {
 
         // Store JWT in cookie using helper method (automatically handles dev/prod)
         setJwtCookie(response, token);
+
+        return ResponseEntity.ok("User registered");
+    }
+
+    @PostMapping("/api/admin/register")
+    public ResponseEntity<?> adminregister(@RequestBody Map<String, String> body,HttpServletResponse response) {
+        String email = body.get("email");
+        String password = body.get("password");
+        String role = body.get("role");
+        String name = body.get("name");
+
+        Optional<User> addedUser = userService.addUser(UserCreateDto.emailUser(email,name,password,role));
+
+
+        if (addedUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
+        }
 
         return ResponseEntity.ok("User registered");
     }
@@ -125,6 +140,7 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpServletResponse response) {
         String email = body.get("email");
         String password = body.get("password");
+        String totpCodeStr = body.get("totpCode");
 
         Optional<User> userOpt = userRepo.findByEmail(email);
         if (userOpt.isEmpty() || userOpt.get().getPassword() == null) {
@@ -134,6 +150,25 @@ public class AuthController {
         User user = userOpt.get();
         if (!passwordEncoder.matches(password, user.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        }
+
+        // If 2FA is enabled, require a valid TOTP code
+        if (user.isTwoFactorEnabled()) {
+            if (totpCodeStr == null || totpCodeStr.isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "TOTP_REQUIRED", "message", "Two-factor code required"));
+            }
+            try {
+                int totpCode = Integer.parseInt(totpCodeStr);
+                boolean ok = totpService.verifyCode(user.getTotpSecret(), totpCode);
+                if (!ok) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(Map.of("error", "TOTP_INVALID", "message", "Invalid two-factor code"));
+                }
+            } catch (NumberFormatException e) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "TOTP_INVALID", "message", "Invalid TOTP format"));
+            }
         }
 
         String token = jwtServices.generateJwtToken(user);
@@ -151,19 +186,7 @@ public class AuthController {
             )
         ));
     }
-    // @GetMapping("/")
-    // public String home() {
-    //     return """
-    //         <h2>OAuth2 JWT Demo</h2>
-    //         <p>Login with different roles:</p>
-    //         <ul>
-    //             <li><a href='/oauth2/authorization/google?role=TUTOR'>Login as USER</a></li>
-    //             <li><a href='/oauth2/authorization/google?role=ADMIN'>Login as ADMIN</a></li>
-    //             <li><a href='/oauth2/authorization/google?role=STUDENT'>Login as MODERATOR</a></li>
-    //         </ul>
-    //         <p><strong>Note:</strong> Role only applies to new user registration. Existing users keep their current roles.</p>
-    //         """;
-    // }
+
     @GetMapping("/oauth2/login/{role}")
     public void oauthLogin(@PathVariable String role, 
                           @RequestParam(value = "redirect_uri", required = false) String redirectUri,
@@ -211,11 +234,7 @@ public class AuthController {
 
         return ResponseEntity.ok().body("{\"message\": \"Logged out successfully\"}");
     }
-    @PostMapping("/sum/post")
-    public String pp(@RequestBody Map<String,Object> ss){
-        return (String) ss.get("sum");
 
-    }
     @GetMapping("/api/user/profile")
     public Map<String, Object> getUserProfile() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

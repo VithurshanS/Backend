@@ -1,5 +1,8 @@
 package com.tutoring.Tutorverse.Services;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +13,10 @@ import com.tutoring.Tutorverse.Dto.ModuelsDto;
 import com.tutoring.Tutorverse.Model.ModuelsEntity;
 import com.tutoring.Tutorverse.Model.ModuelsEntity.ModuleStatus;
 import com.tutoring.Tutorverse.Model.DomainEntity;
-import com.tutoring.Tutorverse.Repository.ModulesRepository;  
+import com.tutoring.Tutorverse.Repository.ModulesRepository;
+
+import io.jsonwebtoken.lang.Collections;
+
 import com.tutoring.Tutorverse.Repository.DomainRepository;
 
 
@@ -22,6 +28,9 @@ public class ModulesService {
 
     @Autowired
     private DomainRepository domainRepository;
+
+    @Autowired
+    private EnrollmentService enrollmentService;
 
     public List<ModuelsDto> getAllModules() {
         try{
@@ -147,6 +156,117 @@ public class ModulesService {
     public Integer getModuleCount() {
         return modulesRepository.findAll().size();
     }
+
+    public Map<String, Object> lastMonthGrowth(){
+		YearMonth currentMonth = YearMonth.now();
+		YearMonth lastMonth = currentMonth.minusMonths(1);
+		YearMonth previousMonth = currentMonth.minusMonths(2);
+
+		LocalDateTime lastStart = lastMonth.atDay(1).atStartOfDay();
+		LocalDateTime lastEnd = lastMonth.atEndOfMonth().atTime(23,59,59,999_999_999);
+
+		LocalDateTime prevStart = previousMonth.atDay(1).atStartOfDay();
+		LocalDateTime prevEnd = previousMonth.atEndOfMonth().atTime(23,59,59,999_999_999);
+
+		long lastCount = modulesRepository.countByCreatedAtBetween(lastStart, lastEnd);
+		long prevCount = modulesRepository.countByCreatedAtBetween(prevStart, prevEnd);
+
+		double growthPercent;
+		if (prevCount == 0) {
+			growthPercent = lastCount > 0 ? 100.0 : 0.0;
+		} else {
+			growthPercent = ((double)(lastCount - prevCount) / (double)prevCount) * 100.0;
+		}
+
+		return Map.of(
+			"lastMonth", lastMonth.toString(),
+			"previousMonth", previousMonth.toString(),
+			"lastMonthCount", lastCount,
+			"previousMonthCount", prevCount,
+			"growthPercent", growthPercent
+		);
+	}
+
+    public List<ModuelsDto> getRecommendedModules(String domain, UUID userId) {
+        try {
+            if (userId == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User ID is required");
+            }
+            if (domain == null || domain.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Domain is required");
+            }
+
+            // Ensure the requester is a student
+            if (!enrollmentService.isStudent(userId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a student");
+            }
+
+            // Resolve domain by name (case-insensitive)
+            String domainName = domain.trim();
+            DomainEntity domainEntity = domainRepository.findAll().stream()
+                    .filter(d -> d.getName() != null && d.getName().equalsIgnoreCase(domainName))
+                    .findFirst()
+                    .orElse(null);
+
+            if (domainEntity == null) {
+                // No such domain -> no recommendations
+                return List.of();
+            }
+
+            // All modules in the domain
+            List<ModuelsEntity> modulesInDomain = modulesRepository
+                    .findByDomain_DomainId(domainEntity.getDomainId())
+                    .stream()
+                    .toList();
+
+            if (modulesInDomain.isEmpty()) {
+                return List.of();
+            }
+
+            // Modules the student is already enrolled in
+            List<ModuelsEntity> enrolledModules = enrollmentService.getenrolledModuleByStudentId(userId);
+            java.util.Set<UUID> enrolledModuleIds = enrolledModules.stream()
+                    .map(ModuelsEntity::getModuleId)
+                    .collect(Collectors.toSet());
+
+            // Exclude enrolled modules, then map to DTOs
+            return modulesInDomain.stream()
+                    .filter(m -> m.getModuleId() != null && !enrolledModuleIds.contains(m.getModuleId()))
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+
+        } catch (ResponseStatusException rse) {
+            throw rse;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch recommendations");
+        }
+    }
+
+    public List<ModuelsDto> getRandomRecommendedModules(UUID userId) {
+        try {
+            List<ModuelsDto> allModules = modulesRepository.findAll().stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+
+            // Filter out modules the user is already enrolled in
+            List<ModuelsDto> filteredModules = enrollmentService.getEnrollmentByStudentId(userId).stream()
+                    .map(ModuelsDto::getModuleId)
+                    .collect(Collectors.toSet())
+                    .stream()
+                    .flatMap(id -> allModules.stream().filter(m -> !m.getModuleId().equals(id)))
+                    .collect(Collectors.toList());
+
+            // take modules that user is not enrolled in
+            java.util.Collections.shuffle(filteredModules);
+            return filteredModules.stream().limit(6).collect(Collectors.toList());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
 }
+
 
 //

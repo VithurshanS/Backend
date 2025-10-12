@@ -1,4 +1,4 @@
-package com.tutoring.Tutorverse.admin.Services;
+package com.tutoring.Tutorverse.Admin.Services;
 
 import com.tutoring.Tutorverse.Model.*;
 import com.tutoring.Tutorverse.Repository.EnrollRepository;

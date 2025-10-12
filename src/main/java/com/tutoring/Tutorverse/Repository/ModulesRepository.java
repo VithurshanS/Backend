@@ -22,4 +22,5 @@ public interface ModulesRepository extends JpaRepository<ModuelsEntity, UUID> {
     Optional<ModuelsEntity> findByModuleId(UUID moduleId);
 
 
+
 }

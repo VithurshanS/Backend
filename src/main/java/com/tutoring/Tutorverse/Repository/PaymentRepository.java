@@ -37,4 +37,11 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID> {
            "GROUP BY FUNCTION('to_char', p.createdAt, 'YYYY-MM') ORDER BY ym")
     java.util.List<Object[]> sumAmountByMonthSince(@Param("status") String status,
                                                    @Param("fromDate") java.time.LocalDateTime fromDate);
+
+    @Query("SELECT COALESCE(SUM(p.amount), 0) " +
+            "FROM PaymentEntity p " +
+            "JOIN p.module m " +
+            "WHERE m.tutorId = :tutorId " +
+            "AND p.status = 'SUCCESS'")
+    Double findTotalEarningsByTutorId(@Param("tutorId") UUID tutorId);
 }

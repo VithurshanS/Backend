@@ -13,8 +13,10 @@ import com.tutoring.Tutorverse.Repository.ModulesRepository;
 import com.tutoring.Tutorverse.SecurityConfigs.PayHereHash;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -254,6 +256,23 @@ public class PaymentService {
     public Double totalAmountSpentByStudent(UUID studentId) {
         Double sum = paymentRepo.sumAmountByStudentIdAndStatus(studentId, "SUCCESS");
         return sum != null ? sum : 0.0;
+    }
+
+    public Double getTotalEarningsForTutor(UUID tutorId) {
+        try {
+            if (tutorId == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tutor ID is required");
+            }
+
+            Double total = paymentRepo.findTotalEarningsByTutorId(tutorId);
+            return total != null ? total : 0.0;
+
+        } catch (ResponseStatusException rse) {
+            throw rse;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch total earnings");
+        }
     }
 
 

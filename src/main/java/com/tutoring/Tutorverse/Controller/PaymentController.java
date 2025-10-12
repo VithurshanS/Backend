@@ -1,8 +1,10 @@
 package com.tutoring.Tutorverse.Controller;
 
 
+import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Services.UserService;
 import com.tutoring.Tutorverse.Dto.PaymentDto;
+import com.tutoring.Tutorverse.Repository.userRepository;
 import com.tutoring.Tutorverse.Services.PaymentService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -25,10 +27,25 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final UserService userService;
+    private  final userRepository userRepo;
 
-    public PaymentController(PaymentService paymentService, UserService userService) {
+    public PaymentController(PaymentService paymentService, UserService userService, userRepository userRepo) {
         this.paymentService = paymentService;
         this.userService = userService;
+        this.userRepo = userRepo;
+    }
+
+    private User requireTutor(HttpServletRequest req) {
+        UUID userId = userService.getUserIdFromRequest(req);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or invalid token");
+        }
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        if (user.getRole() == null || user.getRole().getName() == null || !user.getRole().getName().equalsIgnoreCase("TUTOR")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Requires TUTOR role");
+        }
+        return user;
     }
 
     @PostMapping("/create")
@@ -87,5 +104,16 @@ public class PaymentController {
     }
 
     public record TotalSpentResponse(UUID studentId, Double totalSpent, String currency) {}
+
+    @GetMapping("/totalEarningsForTutor")
+    public ResponseEntity<Double> getTotalEarningsForTutor(HttpServletRequest req) {
+        User tutor = requireTutor(req); // your auth utility
+        if (tutor == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing authentication token");
+        }
+
+        Double total = paymentService.getTotalEarningsForTutor(tutor.getId());
+        return ResponseEntity.ok(total);
+    }
     
 } 

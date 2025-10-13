@@ -12,6 +12,7 @@ import com.tutoring.Tutorverse.Repository.ModulesRepository;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Model.ModuelsEntity;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -136,5 +137,41 @@ public class ModulesController {
         List<ModuelsDto> modules = modulesService.getModulesByTutorId(tutorId);
         return ResponseEntity.ok(modules);
     }
+
+
+    
+	@GetMapping("/growthmodule/last-month")
+	public ResponseEntity<?> getLastMonthGrowth() {
+		try {
+			Map<String, Object> growthData = modulesService.lastMonthGrowth();
+			return ResponseEntity.ok().body(growthData);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving growth data: " + e.getMessage());
+		}
+	}
+
+    @GetMapping("/recommendedmodules")
+    public ResponseEntity<List<ModuelsDto>> getRecommendedModulesToMatchingDomain(@RequestParam String domain,HttpServletRequest req) {
+        UUID userId = userService.getUserIdFromRequest(req);
+        List<ModuelsDto> modules = modulesService.getRecommendedModules(domain,userId);
+        return ResponseEntity.ok(modules);
+    }
+
+    @GetMapping("/randomrecommendedmodules")
+    public ResponseEntity<List<ModuelsDto>> getRandomRecommendedModules(HttpServletRequest req) {
+        try {
+            UUID userId = userService.getUserIdFromRequest(req);
+            List<ModuelsDto> modules = modulesService.getRandomRecommendedModules(userId);
+            return ResponseEntity.ok(modules);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
+        }
+
+
+    }
+
+
+
 
 }  

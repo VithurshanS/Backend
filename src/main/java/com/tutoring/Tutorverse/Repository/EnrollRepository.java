@@ -24,4 +24,5 @@ public interface EnrollRepository extends JpaRepository<EnrollmentEntity, UUID> 
     Optional<Boolean> getIsPaidByStudentStudentIdAndModuleModuleId(UUID studentId, UUID moduleId);
     
     Integer countByModuleModuleId(UUID moduleId);
+    long count();
 }

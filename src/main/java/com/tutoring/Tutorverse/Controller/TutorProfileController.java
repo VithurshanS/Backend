@@ -181,6 +181,58 @@ public class TutorProfileController {
         tutorProfileService.approveTutor(tutorId);
         return ResponseEntity.ok().build();
     }
+
+
+
+    @GetMapping("/countall")
+    public ResponseEntity<?> getTotalTutorCount() {
+        try {
+            Integer totalCount = tutorProfileService.getTutorCount();
+            Map<String, Integer> payload = new HashMap<>();
+            payload.put("totalCount", totalCount);
+            return ResponseEntity.ok().body(payload);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving tutor count: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/growthtutor/last-month")
+	public ResponseEntity<?> getLastMonthGrowth() {
+		try {
+			Map<String, Object> growthData = tutorProfileService.lastMonthGrowth();
+			return ResponseEntity.ok().body(growthData);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving growth data: " + e.getMessage());
+		}
+	}
+
+    @GetMapping("/tutorname")
+    public ResponseEntity<?> getTutorNameById(@RequestParam UUID tutorId) {
+        try {
+            String tutorName = tutorProfileService.getTutorNameById(tutorId);
+            Map<String, String> response = new HashMap<>();
+            response.put("tutorName", tutorName);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving tutor name: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/image")
+    public ResponseEntity<?> getTutorImageUrl(HttpServletRequest req) {
+        try {
+            UUID userId = userService.getUserIdFromRequest(req);
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
+            }
+            String imageUrl = tutorProfileService.getTutorImageUrl(userId);
+            Map<String, String> response = new HashMap<>();
+            response.put("imageUrl", imageUrl);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving tutor image URL: " + e.getMessage());
+        }
+    }
     
 
 }

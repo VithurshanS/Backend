@@ -2,7 +2,10 @@ package com.tutoring.Tutorverse.Services;
 
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -10,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.tutoring.Tutorverse.Dto.TutorProfileDto;
+import com.tutoring.Tutorverse.Model.StudentEntity;
 import com.tutoring.Tutorverse.Model.TutorEntity;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.TutorProfileRepository;
@@ -146,6 +150,53 @@ public class TutorProfileService {
         tutor.setStatus(TutorEntity.Status.BANNED);
         tutorRepository.save(tutor);
     }
+
+
+    public Map<String, Object> lastMonthGrowth(){
+		YearMonth currentMonth = YearMonth.now();
+		YearMonth lastMonth = currentMonth.minusMonths(1);
+		YearMonth previousMonth = currentMonth.minusMonths(2);
+
+		LocalDateTime lastStart = lastMonth.atDay(1).atStartOfDay();
+		LocalDateTime lastEnd = lastMonth.atEndOfMonth().atTime(23,59,59,999_999_999);
+
+		LocalDateTime prevStart = previousMonth.atDay(1).atStartOfDay();
+		LocalDateTime prevEnd = previousMonth.atEndOfMonth().atTime(23,59,59,999_999_999);
+
+		long lastCount = tutorRepository.countByCreatedAtBetween(lastStart, lastEnd);
+		long prevCount = tutorRepository.countByCreatedAtBetween(prevStart, prevEnd);
+
+		double growthPercent;
+		if (prevCount == 0) {
+			growthPercent = lastCount > 0 ? 100.0 : 0.0;
+		} else {
+			growthPercent = ((double)(lastCount - prevCount) / (double)prevCount) * 100.0;
+		}
+
+		return Map.of(
+			"lastMonth", lastMonth.toString(),
+			"previousMonth", previousMonth.toString(),
+			"lastMonthCount", lastCount,
+			"previousMonthCount", prevCount,
+			"growthPercent", growthPercent
+		);
+	}
+
+
+    public String getTutorNameById(UUID tutorId) {
+        TutorEntity tutor = tutorRepository.findById(tutorId)
+                .orElseThrow(() -> new RuntimeException("Tutor profile not found"));
+        return tutor.getFirstName() + " " + tutor.getLastName();
+
+
+}
+
+public String getTutorImageUrl(UUID id) {
+		TutorEntity tutor = tutorRepository.findById(id)
+			.orElseThrow(() -> new RuntimeException("Tutor not found with id: " + id));
+		return tutor.getImage();
+	}
+
 
 
 }

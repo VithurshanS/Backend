@@ -1,16 +1,12 @@
-package com.tutoring.Tutorverse.admin.Controller;
+package com.tutoring.Tutorverse.Admin.Controller;
 
-import com.tutoring.Tutorverse.Dto.WithdrawalDto;
-import com.tutoring.Tutorverse.Model.TutorEntity;
-import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Model.WithdrawalEntity;
 import com.tutoring.Tutorverse.Repository.WithdrawalRepository;
 import com.tutoring.Tutorverse.Services.UserService;
 import com.tutoring.Tutorverse.Services.TutorProfileService;
 import com.tutoring.Tutorverse.Services.WalletService;
+import com.tutoring.Tutorverse.Admin.Services.AdminPaymentService;
 import com.tutoring.Tutorverse.Repository.userRepository;
-import com.tutoring.Tutorverse.admin.Services.adminService;
-import com.tutoring.Tutorverse.Services.WalletService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 
@@ -35,13 +30,15 @@ public class adminController {
         @Autowired
         private UserService userService;
         @Autowired
+        private AdminPaymentService adminPaymentService;
+        @Autowired
         private TutorProfileService tutorProfileService;
         @Autowired
         private WithdrawalRepository withdrawalRepo;
         @Autowired
         private userRepository userRepo;
         @Autowired
-        private adminService adminService;
+        private AdminPaymentService AdminPaymentService;
 
 
     @Value("${payhere.merchantId}") private String merchantId;
@@ -125,20 +122,10 @@ public class adminController {
     }
 
 
-    @PostMapping("/pay/{id}")
-    public ResponseEntity<?> payWithdrawal(@PathVariable UUID id) {
-        try {
-            // Call the service method you already wrote
-            Map<String, Object> paymentData = adminService.withdrawPay(id);
-
-            return ResponseEntity.ok(paymentData);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to process payment request"));
-        }
+    @GetMapping("/revenue")
+    public ResponseEntity<?> getPlatformRevenue() {
+        double totalRevenue = adminPaymentService.getTotalPlatformRevenue();
+        return ResponseEntity.ok(Map.of("totalRevenue", totalRevenue));
     }
 
 

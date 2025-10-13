@@ -35,10 +35,9 @@ public class MeetingService {
     @Autowired
     private ModulesRepository modulesRepository;
 
-    // Jitsi configuration - you can move these to application.properties
     private final String JITSI_APP_ID = "mydeploy1";
     private final String JITSI_APP_SECRET = "wEoG/Y5keRbH4yrjMe7UxWiBzqO8a8VRqY8cVR4oXro=";
-    private final String JITSI_DOMAIN = "jit.shancloudservice.com";
+    private final String JITSI_DOMAIN = "jitsi.shancloudservice.com";
 
     public Map<String, Object> createMeeting(MeetingRequestDto details, String authToken) {
         try {
@@ -86,10 +85,14 @@ public class MeetingService {
 
             // Step 4: Generate token using function (tutor-moderator, student-guest)
             boolean isModerator = "TUTOR".equals(roleName);
-            String jitsiToken = generateJitsiToken(user, scheduleId.toString(), isTutor(userId));
+            String cn = modulesRepository.findByModuleId(details.getModuleId())
+                .map(m -> m.getName())
+                .orElse("Unknown Module");
+            String jitsiToken = generateJitsiToken(user, cn, isTutor(userId));
 
             // Step 5: Generate meeting link using token and schedule ID as room ID
-            String meetingLink = generateMeetingLink(jitsiToken, scheduleId.toString());
+
+            String meetingLink = generateMeetingLink(jitsiToken, cn);
 
             // Prepare response
             Map<String, Object> response = new HashMap<>();
@@ -109,6 +112,9 @@ public class MeetingService {
                 "requestedDate", details.getRequestedDate(),
                 "requestedTime", details.getRequestedTime()
             ));
+            response.put("courseName", modulesRepository.findByModuleId(details.getModuleId())
+                .map(m -> m.getName())
+                .orElse("Unknown Module"));
 
             return response;
 
@@ -145,7 +151,7 @@ public class MeetingService {
                     .setAudience("jitsi")
                     .setIssuer(JITSI_APP_ID)
                     .setSubject(JITSI_DOMAIN)
-                    .claim("room", roomId) // Use schedule ID as room name// true for TUTOR, false for STUDENT
+                    .claim("room", roomId)
                     .setExpiration(new Date(expMillis))
                     .claim("context", context)
                     .signWith(Keys.hmacShaKeyFor(keyBytes), SignatureAlgorithm.HS256)

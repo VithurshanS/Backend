@@ -8,6 +8,19 @@ CREATE TABLE IF NOT EXISTS event_publication (
     completion_date TIMESTAMP
 );
 
+INSERT INTO recurrent (recurrent_type) VALUES ('Weekly'), ('Daily')
+ON CONFLICT DO NOTHING;
+
+-- Sample domains
+INSERT INTO domain (name) VALUES
+    ('Mathematics'),
+    ('Science'),
+    ('English'),
+    ('Computer Science'),
+    ('History'),
+    ('Art')
+ON CONFLICT DO NOTHING;
+
 -- Create index for performance
 CREATE INDEX IF NOT EXISTS idx_event_publication_completion_date ON event_publication(completion_date);
 CREATE INDEX IF NOT EXISTS idx_event_publication_publication_date ON event_publication(publication_date);

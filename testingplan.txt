@@ -1,0 +1,205 @@
+Test Approach
+
+3.1.1 Data and Database Integrity Testing
+
+Objective
+Ensure that all database tables, relationships, constraints, triggers, and functions are correctly defined, enforced, and maintained throughout application operations. This guarantees data consistency, validity, and reliability for all core entities (users, roles, modules, schedules, payments).
+
+Scope
+- Table existence and schema validation
+- Initial seed data presence (roles, domains, recurrent types)
+- Referential integrity (foreign keys)
+- Unique constraints and data duplication prevention
+- Trigger and function correctness (e.g., schedule clash detection, upcoming schedules retrieval)
+- Data insertion, update, and deletion integrity
+
+Test Cases
+
+1. Schema Validation
+- Verify all required tables exist (roles, users, tutor, student, domain, modules, schedules, recurrent, etc.).
+- Ensure all columns, types, and constraints match the expected schema.
+- Confirm that Flyway migrations apply successfully and the schema is up-to-date.
+
+2. Seed Data Verification
+- Check that initial roles (ADMIN, TUTOR, STUDENT) are present.
+- Validate that default domains and recurrent types are seeded.
+- Assert that no duplicate seed data is inserted (using ON CONFLICT DO NOTHING).
+
+3. Referential Integrity
+- Attempt to insert records with invalid foreign keys and expect failure.
+- Delete parent records and verify cascading or restricted behavior as per schema design.
+
+4. Unique and Not Null Constraints
+- Try inserting duplicate values in unique columns (e.g., email, role name) and expect constraint violations.
+- Attempt to insert nulls into required fields and verify constraint enforcement.
+
+5. Trigger and Function Integrity
+- Test the check_schedule_clash trigger by attempting to insert overlapping schedules and expect rejection.
+- Validate that non-overlapping schedules are accepted.
+- Test the get_upcoming_schedules function for correct output structure and data accuracy.
+
+6. Data Operations Integrity
+- Insert, update, and delete records in all key tables and verify data consistency.
+- Ensure audit fields (created_at, updated_at) are correctly set and updated.
+
+Tools & Methods
+- JUnit and Spring Boot Test for automated repository and integration tests.
+- JdbcTemplate for direct SQL assertions.
+- Flyway for migration and schema versioning.
+- Manual SQL queries for edge-case validation.
+
+Acceptance Criteria
+- All schema, seed data, and integrity tests pass without errors.
+- No unauthorized or invalid data is present in the database.
+- All triggers and functions behave as expected under normal and edge-case conditions.
+
+
+
+3.1.2 Function Testing
+[Function testing of the target-of-test should focus on any requirements for test that can be traced directly to use cases or business functions and business rules. The goals of these tests are to verify proper data acceptance, processing, and retrieval, and the appropriate implementation of the business rules. This type of testing is based upon black box techniques; that is verifying the application and its internal processes by interacting with the application via the Graphical User Interface (GUI) and analyzing the output or results. The following table identifies an outline of the testing recommended for each application.]
+Technique Objective:
+[Exercise target-of-test functionality, including navigation, data entry, processing, and retrieval to observe and log target behavior.]
+Technique:
+[Execute each use-case scenario’s individual use-case flows or functions and features, using valid and invalid data, to verify that:
+∙	 the expected results occur when valid data is used
+∙	 the appropriate error or warning messages are displayed when 	invalid data is used
+∙  	each business rule is properly applied]
+Oracles:
+[Outline one or more strategies that can be used by the technique to accurately observe the outcomes of the test. The oracle combines elements of both the method by which the observation can be made and the characteristics of specific outcome that indicate probable success or failure. Ideally, oracles will be self-verifying, allowing automated tests to make an initial assessment of test pass or failure, however, be careful to mitigate the risks inherent in automated results determination.]
+Required Tools:
+[The technique requires the following tools:
+Test Script Automation Tool
+base configuration imager and restorer
+backup and recovery tools
+installation-monitoring tools (registry, hard disk, CPU, memory, and so forth)
+Data-generation tools]
+Success Criteria:
+[The technique supports the testing of:
+∙   	all key use-case scenarios
+∙  	all key features]
+Special Considerations:
+[Identify or describe those items or issues (internal or external) that impact the implementation and execution of  function test.]
+
+---
+3.1.2 Function Testing
+
+Objective
+Verify that all core business functions, use-case scenarios, and business rules are correctly implemented and behave as expected in the repository and service layers. Ensure that data acceptance, processing, and retrieval logic meet requirements and that error handling and business rule enforcement are robust.
+
+Scope
+- Repository method coverage (CRUD operations, custom queries)
+- Service layer logic (schedule creation, update, deletion, clash detection, upcoming session retrieval, payment processing, rating, notifications)
+- Use-case scenario validation (student enrollment, tutor assignment, meeting creation, wallet transactions)
+- Business rule enforcement (e.g., schedule clash prevention, valid enrollment, payment status updates)
+- Error and exception handling (invalid data, missing entities, constraint violations)
+
+Test Cases
+
+1. Repository CRUD Operations
+- Create, read, update, and delete entities (users, modules, schedules, payments, ratings, etc.)
+- Validate that repository methods return correct results for valid and invalid inputs
+- Assert that custom queries (e.g., findByModuleId, findByTutorId) return expected data
+
+2. Service Layer Functionality
+- Create schedule via service, ensuring clash detection and recurrent type handling
+- Update and delete schedules, verifying audit fields and business rule enforcement
+- Retrieve upcoming sessions for modules, tutors, and students
+- Process payments and wallet transactions, checking for correct status updates and error handling
+- Send notifications and emails, validating correct recipients and message content
+
+3. Use-Case Scenario Coverage
+- Enroll student in module, verify enrollment status and constraints
+- Assign tutor to module, check for valid assignment and error handling
+- Create and join meetings, validate meeting link generation and access control
+
+4. Business Rule Validation
+- Attempt operations that violate business rules (e.g., overlapping schedules, duplicate enrollments, invalid payments) and expect appropriate errors
+- Confirm that all business rules are enforced in both repository and service layers
+
+5. Error and Exception Handling
+- Provide invalid or missing data to service methods and assert correct error responses
+- Simulate edge cases (e.g., deleting non-existent entities, processing payments for inactive users)
+
+Tools & Methods
+- JUnit and Spring Boot Test for automated function and integration tests
+- MockMvc for service and controller layer testing
+- Mockito for mocking dependencies and edge-case simulation
+- Manual API and SQL queries for black-box validation
+
+Acceptance Criteria
+- All function and business rule tests pass without errors
+- Valid data is accepted and processed correctly; invalid data is rejected with appropriate errors
+- All key use-case scenarios and business rules are covered by automated tests
+- Service and repository layers behave consistently and robustly under normal and edge-case conditions
+
+---
+3.1.3 User Interface Testing
+
+Objective
+Verify that the user interface provides intuitive, reliable, and accessible interaction for all users (students, tutors, admins). UI testing aims to ensure that navigation, forms, feedback, and workflows function correctly, are visually consistent, and meet usability and accessibility standards.
+
+Scope
+- Navigation: Menus, links, sidebar, breadcrumbs, and page transitions (e.g., dashboard, modules, schedule, upload, profile, meeting)
+- Forms: Input fields, dropdowns, checkboxes, radio buttons, file uploads, and submission actions (e.g., login, registration, scheduling, material upload, profile editing)
+- Validation: Client-side and server-side validation for all user inputs (required fields, formats, constraints)
+- Error Handling: Display and behavior of error, warning, and success messages (toast, alert dialogs, inline errors)
+- Accessibility: Color contrast and focus management
+- Responsiveness: Layout and component behavior on desktop, tablet, and mobile devices
+- User Flows: End-to-end scenarios (registration, login, profile management, scheduling, material upload, meeting join, rating)
+- Edge Cases: Invalid inputs, empty states, boundary conditions, and error recovery
+
+Test Cases
+1. Page Rendering
+- Verify all pages and components render correctly (dashboard, modules, schedule, upload, profile, meeting, auth)
+- Confirm loading states, skeletons, and empty states display as expected
+
+2. Navigation
+- Test all navigation links, menu items, sidebar toggles, and breadcrumbs for correct routing
+- Validate browser back/forward navigation and deep linking
+
+3. Form Input & Validation
+- Check required fields, input formats, and validation messages for all forms
+- Attempt form submission with valid and invalid data (e.g., login, registration, schedule, upload)
+
+4. Error & Success Messages
+- Trigger and verify display of error, warning, and success notifications (toast, alert, dialog)
+- Ensure messages are clear, actionable, and dismissible
+
+5. Accessibility
+- Test keyboard navigation, focus states, and ARIA attributes
+- Use screen reader tools to verify content accessibility
+
+6. Responsiveness
+- Resize browser window and test on multiple devices to confirm adaptive layouts
+- Check for overflow, hidden content, and mobile menu behavior
+
+7. User Flows
+- Simulate complete user journeys (sign up, enroll, schedule, upload, join meeting, rate module)
+- Validate state persistence and feedback at each step
+
+8. Edge Cases
+- Input maximum/minimum values, unsupported file types, and empty states
+- Test error recovery and retry mechanisms
+
+Tools & Methods
+- Cypress: Main tool for automated end-to-end and component UI testing
+- Manual Testing: For exploratory, visual, and accessibility checks
+- Axe (Cypress plugin): For automated accessibility audits
+- Browser developer tools: For responsive and cross-browser testing
+
+Acceptance Criteria
+- All UI components and pages render correctly and are visually consistent
+- Navigation, forms, and user flows function as intended without errors
+- Validation and error messages are accurate, clear, and actionable
+- Application meets defined accessibility standards (WCAG 2.1 AA)
+- Responsive design works across all supported devices and screen sizes
+- All automated Cypress UI tests pass without failures
+- No critical or major UI defects remain unresolved
+
+Special Considerations
+- UI tests should be run on all major browsers and device types supported by the project
+- Accessibility and responsiveness are prioritized for inclusivity and usability
+- Automated tests are integrated into CI/CD for continuous validation
+- Manual exploratory testing is performed before major releases to catch visual or usability issues not covered by automation
+- Some custom and third-party UI components may have limited property access for automated testing
+

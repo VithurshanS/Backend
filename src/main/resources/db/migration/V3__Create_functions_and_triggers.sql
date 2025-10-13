@@ -409,7 +409,7 @@ BEGIN
             OR ((s.week_number BETWEEN 1 AND 7))
             OR ((s.week_number = 0) AND (
                 (s.t0 < s.t2 AND ((s.date>from_date) OR (s.date = from_date and from_time <= s.t2)))
-                OR ((s.t0>s.t2) AND ((s.date>from_date)OR(s.tm<s.t1 and from_time<s.t2 and s.date=(from_date -1))) ))
+                OR ((s.t0>s.t2) AND ((s.date>=from_date)OR(s.tm<s.t1 and from_time<s.t2 and s.date=(from_date -1))) ))
             )
         )
     ORDER BY 

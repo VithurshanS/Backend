@@ -37,7 +37,7 @@ public class MeetingService {
 
     private final String JITSI_APP_ID = "mydeploy1";
     private final String JITSI_APP_SECRET = "wEoG/Y5keRbH4yrjMe7UxWiBzqO8a8VRqY8cVR4oXro=";
-    private final String JITSI_DOMAIN = "jitsi.shancloudservice.com";
+    private final String JITSI_DOMAIN = "jit.shancloudservice.com";
 
     public Map<String, Object> createMeeting(MeetingRequestDto details, String authToken) {
         try {

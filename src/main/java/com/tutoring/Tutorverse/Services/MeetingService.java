@@ -88,7 +88,7 @@ public class MeetingService {
             String cn = modulesRepository.findByModuleId(details.getModuleId())
                 .map(m -> m.getName())
                 .orElse("Unknown Module");
-            String jitsiToken = generateJitsiToken(user, cn, isTutor(userId));
+            String jitsiToken = generateJitsiToken(user, scheduleId.toString(), isTutor(userId));
 
             // Step 5: Generate meeting link using token and schedule ID as room ID
 

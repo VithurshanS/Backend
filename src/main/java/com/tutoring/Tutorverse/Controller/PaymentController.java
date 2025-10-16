@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 
-@CrossOrigin(origins ="https://frontend.shancloudservice.com")
+@CrossOrigin(origins ={"https://frontend.shancloudservice.com","https://m.tutorverse.app"})
 @RestController
 @RequestMapping("/api/payments")
 @Slf4j

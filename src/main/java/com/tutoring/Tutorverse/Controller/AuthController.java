@@ -132,7 +132,7 @@ public class AuthController {
             ));
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token or authentication failed");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token or authentication failedooooo"+req.toString());
         }
     }
 

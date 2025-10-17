@@ -63,6 +63,7 @@ public class ModuelDescriptionService {
         return toDto(entity);
     }
 
+    @Transactional
     public ModuelDescriptionDto update(UUID tutorId, UUID moduleId, ModuelDescriptionDto dto) {
         ModuelsEntity module = modulesRepository.findById(moduleId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Module not found"));
@@ -85,6 +86,7 @@ public class ModuelDescriptionService {
         return toDto(saved);
     }
 
+    @Transactional
     public void delete(UUID tutorId, UUID moduleId) {
         ModuelsEntity module = modulesRepository.findById(moduleId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Module not found"));

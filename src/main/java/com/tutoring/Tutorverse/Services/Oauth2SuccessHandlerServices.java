@@ -125,7 +125,7 @@ public class Oauth2SuccessHandlerServices implements AuthenticationSuccessHandle
         if (isProduction) {
             // Production: Cross-domain HTTPS configuration
             response.setHeader("Set-Cookie", String.format(
-                "jwt_token=%s; Path=/; Max-Age=86400; HttpOnly=false; Secure=true; SameSite=None; Domain=.tutorverse.app",
+                "jwt_token=%s; Path=/; Max-Age=86400; HttpOnly=false; Secure=true; SameSite=None; Domain=.shancloudservice.com",
                 jwtToken
             ));
         } else {

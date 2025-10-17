@@ -124,7 +124,7 @@ public class AuthController {
             }
 
             if(user == null){
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found or invalid token");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found or invalid token"+req.getCookies().toString());
             }
 
 

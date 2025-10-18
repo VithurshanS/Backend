@@ -267,6 +267,19 @@ public class ModulesService {
         }
     }
 
+    public String getModuleNameById(UUID moduleId) {
+        try {
+            ModuelsEntity module = modulesRepository.findById(moduleId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Module not found"));
+            return module.getName();
+        } catch (ResponseStatusException rse) {
+            throw rse;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch module name");
+        }
+    }
+
 
 }
 

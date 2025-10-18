@@ -1,4 +1,4 @@
-CREATE TABLE admin_profile (
+CREATE TABLE IF NOT EXISTS admin_profile (
     admin_id UUID NOT NULL PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE admin_profile (
     CONSTRAINT fk_admin_user FOREIGN KEY (admin_id) REFERENCES users (id)
 );
 
-CREATE TABLE announcements (
+CREATE TABLE IF NOT EXISTS announcements (
     id UUID NOT NULL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,

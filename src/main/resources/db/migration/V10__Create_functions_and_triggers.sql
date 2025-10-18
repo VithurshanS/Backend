@@ -409,7 +409,7 @@ BEGIN
             OR ((s.week_number BETWEEN 1 AND 7))
             OR ((s.week_number = 0) AND (
                 (s.t0 < s.t2 AND ((s.date>from_date) OR (s.date = from_date and from_time <= s.t2)))
-                OR ((s.t0>s.t2) AND ((s.date>from_date)OR(s.tm<s.t1 and from_time<s.t2 and s.date=(from_date -1))) ))
+                OR ((s.t0>s.t2) AND ((s.date>=from_date)OR(s.tm<s.t1 and from_time<s.t2 and s.date=(from_date -1))) ))
             )
         )
     ORDER BY 
@@ -453,11 +453,6 @@ BEGIN
             (s.time + interval '1 hour') AS t2,
             '12:00:00'::TIME as tm
         FROM schedules s
-        INNER JOIN modules m ON s.module_id = m.module_id
-        INNER JOIN enrollment e ON m.module_id = e.module_id
-        WHERE 
-            (stu_id IS NULL OR e.student_id = stu_id)
-            AND e.is_paid = TRUE  -- Only show schedules for paid enrollments
     )
     SELECT 
         s.schedule_id,
@@ -497,7 +492,6 @@ BEGIN
 											ELSE (from_date + ((s.week_number - EXTRACT(ISODOW FROM from_date)::int + 7) % 7)::int)::DATE
 										END
 								END
-								
 						END
                 END
             WHEN s.week_number = 8 THEN 
@@ -521,7 +515,6 @@ BEGIN
 									WHEN from_time>s.t0 THEN from_date
 									ELSE from_date
 								END
-								
 						END
                 END
             ELSE s.date
@@ -614,14 +607,26 @@ BEGIN
     LEFT JOIN modules m ON s.module_id = m.module_id
     LEFT JOIN tutor tp ON m.tutor_id = tp.tutor_id
     LEFT JOIN users u ON m.tutor_id = u.id
+    -- Ensure the student is enrolled & has paid (when stu_id provided). Using EXISTS avoids duplicate rows.
     WHERE 
-        (mod_id IS NULL OR s.module_id=mod_id)
+        (mod_id IS NULL OR s.module_id = mod_id)
+        AND (
+            -- if no stu_id provided, show schedules (matching teacher function)
+            stu_id IS NULL
+            OR EXISTS (
+                SELECT 1
+                FROM enrollment e
+                WHERE e.module_id = s.module_id
+                  AND e.is_paid = TRUE
+                  AND e.student_id = stu_id
+            )
+        )
         AND (
             ((s.week_number = 8))
             OR ((s.week_number BETWEEN 1 AND 7))
             OR ((s.week_number = 0) AND (
-                (s.t0 < s.t2 AND ((s.date>from_date) OR (s.date = from_date and from_time <= s.t0)))
-                OR ((s.t0>s.t2) AND ((s.date>from_date)OR(s.tm<s.t1 and from_time<s.t2 and s.date=(from_date -1))) ))
+                (s.t0 < s.t2 AND ((s.date>from_date) OR (s.date = from_date and from_time <= s.t2)))
+                OR ((s.t0>s.t2) AND ((s.date>=from_date)OR(s.tm<s.t1 and from_time<s.t2 and s.date=(from_date -1))) ))
             )
         )
     ORDER BY 
@@ -631,6 +636,7 @@ BEGIN
     LIMIT limit_count;
 END;
 $$ LANGUAGE plpgsql;
+
 
 -- Function to find matching schedule
 CREATE OR REPLACE FUNCTION find_matching_schedule(

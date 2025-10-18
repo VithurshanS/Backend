@@ -11,6 +11,7 @@ import jakarta.persistence.*;
 public class Report {
 
 @Id
+@GeneratedValue(strategy = GenerationType.AUTO)
 @Column(name = "report_id", nullable = false, updatable = false)
 private UUID reportId;
 

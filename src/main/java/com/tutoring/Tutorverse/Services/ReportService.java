@@ -63,6 +63,7 @@ public class ReportService {
 			}
 		}
 		return new GetReportDto(
+			report.getReportId(),
 			moduleName,
 			reportedByName,
 			report.getReason(),

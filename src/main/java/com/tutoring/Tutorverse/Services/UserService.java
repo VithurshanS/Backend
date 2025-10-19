@@ -158,4 +158,9 @@ public class UserService {
         return null;
     }
 
+    public String getUserNameById(UUID userId) {
+        Optional<User> userOpt = userRepo.findById(userId);
+        return userOpt.map(User::getName).orElse(null);
+    }
+
 }

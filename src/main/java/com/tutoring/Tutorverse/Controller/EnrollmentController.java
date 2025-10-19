@@ -78,16 +78,10 @@ public class EnrollmentController {
 
 
     @GetMapping("/getenrollmentid")
-    public ResponseEntity<String> getEnrollmentId(@RequestParam String Module_Id,@RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<String> getEnrollmentId(@RequestParam String Module_Id,HttpServletRequest req) {
         try {
-            if (authHeader == null || authHeader.isBlank() || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.badRequest().body("Missing or invalid Authorization header");
-            }
-            String token = authHeader.substring(7);
-            if (!jwtServices.validateJwtToken(token)) {
-                return ResponseEntity.badRequest().body("Invalid token");
-            }
-            UUID userId = jwtServices.getUserIdFromJwtToken(token);
+ 
+            UUID userId = userService.getUserIdFromRequest(req);
             // Fetch user to get name
             UUID enrollmentId = enrollmentService.getEnrollmentId(userId,UUID.fromString(Module_Id));
             if (enrollmentId == null) {

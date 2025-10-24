@@ -12,8 +12,15 @@ import java.util.UUID;
 @Repository
 public interface EmailRepository extends JpaRepository<EnrollmentEntity, UUID> {
 
+    @Query("SELECT u.email, u.name FROM User u " +
+            "JOIN EnrollmentEntity e ON u.id = e.student.user.id " +
+            "WHERE e.module.moduleId = :moduleId")
+    List<Object[]> findEmailsAndFirstNamesByModuleId(@Param("moduleId") UUID moduleId);
+
     @Query("SELECT u.email FROM User u " +
             "JOIN EnrollmentEntity e ON u.id = e.student.user.id " +
             "WHERE e.module.moduleId = :moduleId")
     List<String> findEmailsByModuleId(@Param("moduleId") UUID moduleId);
+
+
 }

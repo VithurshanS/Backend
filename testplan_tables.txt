@@ -1,0 +1,107 @@
+3.1.1 Data and Database Integrity Testing
+
+Data and Database Integrity Testing ensures the TutorVerse backend maintains reliable, consistent, and valid data across all core entities and operations. This testing verifies that the database schema, relationships, constraints, triggers, and functions are correctly implemented and enforced, preventing data corruption and unauthorized changes. The methodology includes both automated and manual validation of schema, seed data, referential integrity, and business logic at the database level.
+
+Objective:
+• Ensure all database tables, relationships, constraints, triggers, and functions are correctly defined, enforced, and maintained throughout application operations. This guarantees data consistency, validity, and reliability for all core entities (users, roles, modules, schedules, payments).
+
+Technique:
+• Validate schema, seed data, referential integrity, unique and not null constraints, triggers, and data operations using direct SQL queries, Flyway migrations, and automated repository tests.
+• Test trigger and function correctness (e.g., schedule clash detection, upcoming schedules retrieval) by attempting edge-case operations and verifying expected outcomes.
+
+Oracles:
+• Use SQL queries and automated tests to verify schema, constraints, triggers, and data integrity.
+• Confirm that Flyway migrations apply successfully and the schema is up-to-date.
+• Assert that no duplicate seed data is inserted (using ON CONFLICT DO NOTHING).
+
+Required Tools:
+• JUnit and Spring Boot Test for automated repository and integration tests
+• JdbcTemplate for direct SQL assertions
+• Flyway for migration and schema versioning
+• Manual SQL queries for edge-case validation
+
+Success Criteria:
+• All schema, seed data, and integrity tests pass without errors
+• No unauthorized or invalid data is present in the database
+• All triggers and functions behave as expected under normal and edge-case conditions
+
+Special Considerations:
+• Pay attention to ON CONFLICT handling, audit fields (created_at, updated_at), and edge-case data operations
+• Referential integrity and cascading/restricted behavior must be verified for parent-child relationships
+
+---
+
+3.1.2 Function Testing
+
+Function Testing validates the core business logic and use-case scenarios implemented in the TutorVerse backend. It ensures that all repository and service layer functions process, retrieve, and manage data according to business rules and requirements. This testing covers CRUD operations, business rule enforcement, error handling, and real-world user flows, using both automated and manual approaches to confirm robust and correct application behavior.
+
+Objective:
+• Verify that all core business functions, use-case scenarios, and business rules are correctly implemented and behave as expected in the repository and service layers. Ensure that data acceptance, processing, and retrieval logic meet requirements and that error handling and business rule enforcement are robust.
+
+Technique:
+• Test CRUD operations, service logic (schedule creation, update, deletion, clash detection, upcoming session retrieval, payment processing, rating, notifications), use-case flows, business rule enforcement, and error handling with valid/invalid data.
+• Simulate edge cases (e.g., deleting non-existent entities, processing payments for inactive users) and verify correct error responses.
+
+Oracles:
+• Automated tests and manual API queries to confirm correct results, error messages, and business rule enforcement.
+• Assert that custom queries (e.g., findByModuleId, findByTutorId) return expected data.
+• Attempt operations that violate business rules (e.g., overlapping schedules, duplicate enrollments, invalid payments) and expect appropriate errors.
+
+Required Tools:
+• JUnit and Spring Boot Test for automated function and integration tests
+• MockMvc for service and controller layer testing
+• Mockito for mocking dependencies and edge-case simulation
+• Manual API and SQL queries for black-box validation
+
+Success Criteria:
+• All function and business rule tests pass without errors
+• Valid data is accepted and processed correctly; invalid data is rejected with appropriate errors
+• All key use-case scenarios and business rules are covered by automated tests
+• Service and repository layers behave consistently and robustly under normal and edge-case conditions
+
+Special Considerations:
+• Ensure coverage of edge cases, error handling, and business rule violations
+• Use-case scenario validation (student enrollment, tutor assignment, meeting creation, wallet transactions) should reflect real user flows
+
+---
+
+3.1.3 User Interface Testing
+
+User Interface Testing verifies that the TutorVerse frontend delivers a reliable, intuitive, and accessible experience for all users. This testing covers navigation, forms, validation, error handling, accessibility, responsiveness, and end-to-end user flows. The methodology combines automated Cypress tests with manual exploratory and accessibility checks to ensure the UI meets usability and quality standards across all supported devices and browsers.
+
+Objective:
+• Verify that the user interface provides intuitive, reliable, and accessible interaction for all users (students, tutors, admins). UI testing aims to ensure that navigation, forms, feedback, and workflows function correctly, are visually consistent, and meet usability and accessibility standards.
+
+Technique:
+• Automated end-to-end and component UI testing with Cypress
+• Manual exploratory, visual, and accessibility checks
+• Responsive and cross-browser testing using browser developer tools
+• Validate navigation, forms, validation, error handling, accessibility, responsiveness, user flows, and edge cases
+
+Oracles:
+• Use Cypress and manual checks to verify UI rendering, navigation, validation, error messages, accessibility, and responsiveness
+• Confirm loading states, skeletons, and empty states display as expected
+• Trigger and verify display of error, warning, and success notifications (toast, alert, dialog)
+• Use screen reader tools to verify content accessibility
+
+Required Tools:
+• Cypress (main tool for automated end-to-end and component UI testing)
+• Axe (Cypress plugin) for automated accessibility audits
+• Browser developer tools for responsive and cross-browser testing
+• Manual testing for exploratory and visual checks
+
+Success Criteria:
+• All UI components and pages render correctly and are visually consistent
+• Navigation, forms, and user flows function as intended without errors
+• Validation and error messages are accurate, clear, and actionable
+• Application meets defined accessibility standards (WCAG 2.1 AA)
+• Responsive design works across all supported devices and screen sizes
+• All automated Cypress UI tests pass without failures
+• No critical or major UI defects remain unresolved
+
+Special Considerations:
+• UI tests should be run on all major browsers and device types supported by the project
+• Accessibility and responsiveness are prioritized for inclusivity and usability
+• Automated tests are integrated into CI/CD for continuous validation
+• Manual exploratory testing is performed before major releases to catch visual or usability issues not covered by automation
+• Some custom and third-party UI components may have limited property access for automated testing

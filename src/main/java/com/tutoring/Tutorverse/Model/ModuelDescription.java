@@ -23,26 +23,30 @@ import lombok.NoArgsConstructor;
 public class ModuelDescription {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "module_id", nullable = true, updatable = false)
     private UUID moduleId;
 
+    @Builder.Default
     @Column(name = "name", nullable = false)
     private String name = "Sample Module";
 
+    @Builder.Default
     @Column(name = "domain", nullable = false)
     private String domain = "Sample Domain";
     
+    @Builder.Default
     @Column(name = "price", nullable = false)
     private Integer price = 0;
 
+    @Builder.Default
     @Column(name = "tutor_name", nullable = false)
     private String tutorName = "MR.X";
 
     // Use TEXT to support long point-wise descriptions
-    @jakarta.persistence.Lob
+    @Builder.Default
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description = "No description available";
 

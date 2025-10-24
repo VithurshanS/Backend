@@ -32,6 +32,7 @@ public class WithdrawalEntity {
     private double amount;
 
     @Column(nullable = false)
+    @Builder.Default
     private String status = "PENDING";
     // PENDING: tutor requested
     // APPROVED: admin approved and ready to pay
@@ -54,6 +55,7 @@ public class WithdrawalEntity {
     private String notes;
 
     @Column(name = "created_at", nullable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "processed_at")

@@ -17,8 +17,10 @@ public class WalletEntity {
         private UUID tutorId;
 
         @Column(name = "available_balance", nullable = false)
+        @Builder.Default
         private double availableBalance = 0.0;
 
         @Column(name = "updated_at")
+        @Builder.Default
         private LocalDateTime updatedAt = LocalDateTime.now();
 }

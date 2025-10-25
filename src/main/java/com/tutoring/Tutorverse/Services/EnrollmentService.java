@@ -79,6 +79,13 @@ public class EnrollmentService {
         return enrollRepository.findIsPaidByStudentIdAndModuleId(studentId, moduleId).orElseThrow(() -> new RuntimeException("Enrollment not found"));
 
     }
+    public Integer incrementSessionsCompleted(UUID moduleId, UUID studentId) {
+        enrollRepository.incrementSessionsCompleted(studentId, moduleId);
+        // Always reload the entity to get the updated value
+        EnrollmentEntity enrollment = enrollRepository.findByStudentStudentIdAndModuleModuleId(studentId, moduleId)
+            .orElseThrow(() -> new RuntimeException("Enrollment not found after increment"));
+        return enrollment.getSessionsCompleted();
+    }
 
     public void unenrollFromModule(UUID enrollmentId) {
         enrollRepository.deleteById(enrollmentId);
@@ -112,6 +119,13 @@ public class EnrollmentService {
             .toList();
         return moduleRepository.findAllById(ModuleIds);
     }
+
+    public Integer findSessionsCompletedByStudentIdAndModuleId(UUID userIdFromRequest, UUID moduleId) {
+        // TODO Auto-generated method stub
+        return enrollRepository.findSessionsCompletedByStudentStudentIdAndModuleModuleId(userIdFromRequest, moduleId);
+    }
+
+
 
 
 }

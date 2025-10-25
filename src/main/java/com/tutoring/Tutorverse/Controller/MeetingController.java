@@ -34,7 +34,8 @@ public class MeetingController {
 
             // Call the meeting service to create meeting with all functionality
             Map<String, Object> response = meetingService.createMeeting(meetingRequest, token);
-
+            
+            
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {

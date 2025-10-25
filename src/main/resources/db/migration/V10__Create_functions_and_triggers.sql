@@ -25,6 +25,28 @@
 -- 1. How EXISTING schedules conflict with NEW schedule
 -- 2. How NEW schedule conflicts with EXISTING schedules
 -- Covers all combinations of week_number patterns: 0 (one-time), 1-7 (weekly), 8 (daily)
+
+CREATE OR REPLACE FUNCTION incrementsessionscompletedh(
+    p_student_id UUID,
+    p_module_id UUID
+)
+RETURNS INTEGER AS $$
+DECLARE
+    updated_rows INTEGER;
+BEGIN
+    UPDATE enrollment
+    SET sessions_completed = sessions_completed + 1
+    WHERE module_id = p_module_id
+      AND student_id = p_student_id;
+
+    GET DIAGNOSTICS updated_rows = ROW_COUNT;
+    RETURN updated_rows;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
 CREATE OR REPLACE FUNCTION check_schedule_clash()
 RETURNS TRIGGER AS $$
 DECLARE

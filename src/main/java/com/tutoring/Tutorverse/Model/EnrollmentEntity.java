@@ -28,6 +28,11 @@ public class EnrollmentEntity {
     @JoinColumn(name = "module_id", nullable = false)
     private ModuelsEntity module;
 
+    @Builder.Default
+    @Column(name = "sessions_completed", nullable = false)
+    private Integer SessionsCompleted = 0;
+
+
     @Column(name = "is_paid", nullable = false)
     private boolean isPaid;
 }

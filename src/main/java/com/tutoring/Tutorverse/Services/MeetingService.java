@@ -9,6 +9,7 @@ import com.tutoring.Tutorverse.Repository.userRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -119,6 +120,10 @@ public class MeetingService {
             response.put("courseName", modulesRepository.findByModuleId(details.getModuleId())
                 .map(m -> m.getName())
                 .orElse("Unknown Module"));
+            if(isStudent(userId)){
+                enrollRepository.incrementSessionsCompleted(userId, details.getModuleId());
+                // System.err.println("d"+d);
+            }
 
             return response;
 

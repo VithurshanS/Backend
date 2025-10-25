@@ -16,7 +16,8 @@ import java.util.UUID;
 @Component
 public class JwtServices {
     // Strong secret key for HS512 - must be at least 64 bytes (512 bits)
-    private final String jwtSecret = "ThisIsAVerySecureSecretKeyForHS512AlgorithmThatIsAtLeast64BytesLongAndShouldBeKeptSecretInProduction123456789";
+    @org.springframework.beans.factory.annotation.Value("${app.jwt.secret}")
+    private String jwtSecret;
     private final long jwtExpirationMs = 86400000; // 1 day
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());

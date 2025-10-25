@@ -38,8 +38,11 @@ public class AuthController {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    @Value("${server.ssl.enabled:false}")
+    @Value("${app.use.ssl:false}")
     private boolean sslEnabled;
+
+    @Value("${app.base.url}")
+    private String appBaseUrl;
 
     @Autowired
     private userRepository userRepo;
@@ -124,7 +127,16 @@ public class AuthController {
             }
 
             if(user == null){
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found or invalid tokenooooooo"+req.getCookies().toString());
+                if (req.getCookies() != null) {
+                    StringBuilder cookiesDebug = new StringBuilder();
+                    for (Cookie cookie : req.getCookies()) {
+                        cookiesDebug.append(cookie.getName()).append("=").append(cookie.getValue()).append("; ");
+                    }
+                    logger.info("Cookies present in request: {}", cookiesDebug.toString());
+                } else {
+                    logger.info("No cookies present in the request");
+                }
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found or invalid tokenooooooo");
             }
 
 
@@ -132,7 +144,9 @@ public class AuthController {
             ));
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token or authentication failedooooo"+req.toString());
+            logger.error("Error in getuser: ", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid token or authentication failed: " + e.getMessage());
         }
     }
 
@@ -299,8 +313,8 @@ public class AuthController {
         if (isProduction) {
             // Production configuration: Secure, SameSite=None, cross-domain
             response.setHeader("Set-Cookie", String.format(
-                "jwt_token=%s; Path=/; Max-Age=86400; Secure; SameSite=None; Domain=.shancloudservice.com",
-                token
+                "jwt_token=%s; Path=/; Max-Age=86400; Secure; SameSite=None; Domain=.%s",
+                token, appBaseUrl
             ));
         } else {
             // Development configuration: Non-secure, SameSite=Lax, localhost
@@ -322,7 +336,7 @@ public class AuthController {
         if (isProduction) {
             // Production: Clear secure cookie with multiple variations to ensure cleanup
             response.addHeader("Set-Cookie",
-                "jwt_token=; Path=/; Max-Age=0; Secure; SameSite=None; Domain=.shancloudservice.com"
+                "jwt_token=; Path=/; Max-Age=0; Secure; SameSite=None; Domain=." + appBaseUrl
             );
             // Also clear without domain to catch any cookies set without domain
             response.addHeader("Set-Cookie",

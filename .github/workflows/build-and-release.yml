@@ -2,7 +2,7 @@ name: Build, Release and Deploy
 
 on:
   push:
-    branches: [ "Development_2.0", "main" ]
+    branches: [ "Development_2.0", "main", "master" ]
     tags: [ "v*" ]
   workflow_dispatch:  # Allows manual trigger
 

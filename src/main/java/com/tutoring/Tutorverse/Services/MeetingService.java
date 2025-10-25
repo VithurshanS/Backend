@@ -34,10 +34,14 @@ public class MeetingService {
 
     @Autowired
     private ModulesRepository modulesRepository;
+    @org.springframework.beans.factory.annotation.Value("${app.jitsi.appid}")
+    private String JITSI_APP_ID;
 
-    private final String JITSI_APP_ID = "mydeploy1";
-    private final String JITSI_APP_SECRET = "wEoG/Y5keRbH4yrjMe7UxWiBzqO8a8VRqY8cVR4oXro=";
-    private final String JITSI_DOMAIN = "jit.shancloudservice.com";
+    @org.springframework.beans.factory.annotation.Value("${app.jitsi.secret}")
+    private String JITSI_APP_SECRET;
+
+    @org.springframework.beans.factory.annotation.Value("${app.jitsi.domain}")
+    private String JITSI_DOMAIN;
 
     public Map<String, Object> createMeeting(MeetingRequestDto details, String authToken) {
         try {

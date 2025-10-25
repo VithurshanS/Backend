@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.tutoring.Tutorverse.Dto.EnrollGetDto;
 import com.tutoring.Tutorverse.Dto.ModuelsDto;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Repository.userRepository;
@@ -97,6 +96,10 @@ public class EnrollmentService {
             return user.getRole() != null && "STUDENT".equalsIgnoreCase(user.getRole().getName());
         }
         return false;
+    }
+
+    public List<Object[]> getStudentEmailsAndFirstNamesByModuleId(UUID moduleId) {
+        return emailRepository.findEmailsAndFirstNamesByModuleId(moduleId);
     }
 
     public List<String> getStudentEmailsByModuleId(UUID moduleId) {

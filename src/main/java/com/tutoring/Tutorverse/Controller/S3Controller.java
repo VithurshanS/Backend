@@ -76,24 +76,22 @@ public class S3Controller {
             MaterialDto material = materialService.saveToDatabase(module_id, title, description, type, fileUrl);
 
             // Send email to students
-            List<String> enrolled_emails = enrollmentService.getStudentEmailsByModuleId(module_id);
-            System.out.println("email list" + enrolled_emails);
-            for (String email : enrolled_emails) {
+            List<Object[]> enrolled_emails_and_names = enrollmentService.getStudentEmailsAndFirstNamesByModuleId(module_id);
+            System.out.println("Enrolled students:");
+
+            for (Object[] student : enrolled_emails_and_names) {
+                String email = (String) student[0];
+                String firstName = (String) student[1];
+                System.out.println("Sending email to: " + email + " Name: " + firstName);
+
                 sendgridService.sendContentUploadEmail(
-                                email,
-                                "New Material Has Been Uploaded: " + material.getTitle(),
-                                "Dear Student, \n A new course material han been uploaded\n\n" +
-                                        ".\n\n" +
-                                        "Title: " + material.getTitle() + "\n" +
-                                        "🔗 Access it here: " + material.getUrl() + "\n\n" +
-                                        "We encourage you to review this material at your earliest convenience to stay updated with your course progress.\n\n" +
-                                        "Best regards,\n" +
-                                        "Tutorverse Team"
-                        );
-
-
-
+                        email,
+                        firstName,
+                        material.getTitle(),
+                        material.getUrl()
+                );
             }
+
 
             return ResponseEntity.ok(material);
 

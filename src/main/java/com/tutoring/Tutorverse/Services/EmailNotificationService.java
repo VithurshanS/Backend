@@ -25,6 +25,9 @@ public class EmailNotificationService {
     
     @Autowired
     private SendgridService sendgridService;
+
+    @Autowired
+    private EnrollmentService enrollmentService;
     
     @Autowired
     private SmtpEmailService smtpEmailService;
@@ -74,16 +77,16 @@ public class EmailNotificationService {
             if (logger.isDebugEnabled()) {
                 logger.debug("📧 Email Configuration Status:");
                 logger.debug("   - Notifications Enabled: {}", emailNotificationsEnabled);
-                logger.debug("   - SendGrid API Key Configured: {}", 
-                           sendgridApiKey != null && !sendgridApiKey.trim().isEmpty() ? "Yes" : "No");
+                logger.debug("   - SendGrid API Key Configured: {}",
+                        sendgridApiKey != null && !sendgridApiKey.trim().isEmpty() ? "Yes" : "No");
             }
             List<ModuleEmailDto> emails = getModuleEmails(moduleId);
-            
+
             if (emails.isEmpty()) {
                 logger.warn("No emails found for module {} (schedule {})", moduleId, scheduleId);
                 return;
             }
-            
+
             logger.info("📧 EMAIL NOTIFICATION TRIGGERED 📧");
             logger.info("================================");
             logger.info("Schedule ID: {}", scheduleId);
@@ -94,100 +97,110 @@ public class EmailNotificationService {
             logger.info("Notification Time: {}", LocalDateTime.now());
             logger.info("Total Recipients: {}", emails.size());
             logger.info("--------------------------------");
-            
+
             for (ModuleEmailDto emailDto : emails) {
                 try {
                     // Convert scheduledDate and scheduledTime strings to LocalDateTime
                     LocalDate date = LocalDate.parse(scheduledDate);
                     LocalTime time = LocalTime.parse(scheduledTime);
                     LocalDateTime scheduledDateTime = LocalDateTime.of(date, time);
-                    
+
                     // Check if email notifications are enabled
                     if (emailNotificationsEnabled) {
                         boolean emailSent = false;
                         String emailMethod = "";
-                        
+
                         // Try SendGrid first
                         if (sendgridApiKey != null && !sendgridApiKey.trim().isEmpty()) {
                             try {
-                                sendgridService.sendReminderEmail(emailDto.getEmail(), courseName, scheduledDateTime);
+                                sendgridService.sendReminderEmail(
+                                        emailDto.getEmail(),
+                                        courseName,
+                                        scheduledDateTime
+                                );
                                 emailSent = true;
                                 emailMethod = "SendGrid";
-                                logger.info("✅ [{}] Email SENT via {} for schedule ID: {} -> {} ({} - {})", 
-                                           LocalDateTime.now(), 
-                                           emailMethod,
-                                           scheduleId, 
-                                           emailDto.getEmail(), 
-                                           emailDto.getUserType(), 
-                                           emailDto.getUserName());
+                                logger.info("✅ [{}] Email SENT via {} for schedule ID: {} -> {} ({} - {})",
+                                        LocalDateTime.now(),
+                                        emailMethod,
+                                        scheduleId,
+                                        emailDto.getEmail(),
+                                        emailDto.getUserType(),
+                                        emailDto.getUserName());
                             } catch (Exception sendgridException) {
-                                logger.warn(" SendGrid failed for {}: {} - Trying SMTP fallback...", 
-                                           emailDto.getEmail(), sendgridException.getMessage());
-                                
+                                logger.warn(" SendGrid failed for {}: {} - Trying SMTP fallback...",
+                                        emailDto.getEmail(), sendgridException.getMessage());
+
                                 // Try SMTP fallback if enabled
                                 if (useSmtpFallback) {
                                     try {
-                                        smtpEmailService.sendReminderEmail(emailDto.getEmail(), courseName, scheduledDateTime);
+                                        smtpEmailService.sendReminderEmail(
+                                                emailDto.getEmail(),
+                                                courseName,
+                                                scheduledDateTime
+                                        );
                                         emailSent = true;
                                         emailMethod = "SMTP";
-                                        logger.info("[{}] Email SENT via {} FALLBACK for schedule ID: {} -> {} ({} - {})", 
-                                                   LocalDateTime.now(), 
-                                                   emailMethod,
-                                                   scheduleId, 
-                                                   emailDto.getEmail(), 
-                                                   emailDto.getUserType(), 
-                                                   emailDto.getUserName());
+                                        logger.info("[{}] Email SENT via {} FALLBACK for schedule ID: {} -> {} ({} - {})",
+                                                LocalDateTime.now(),
+                                                emailMethod,
+                                                scheduleId,
+                                                emailDto.getEmail(),
+                                                emailDto.getUserType(),
+                                                emailDto.getUserName());
                                     } catch (Exception smtpException) {
-                                        logger.error("Both SendGrid AND SMTP failed for {} in schedule {}: SendGrid={}, SMTP={}", 
-                                                    emailDto.getEmail(), scheduleId, sendgridException.getMessage(), smtpException.getMessage());
+                                        logger.error("Both SendGrid AND SMTP failed for {} in schedule {}: SendGrid={}, SMTP={}",
+                                                emailDto.getEmail(), scheduleId, sendgridException.getMessage(), smtpException.getMessage());
                                     }
                                 } else {
-                                    logger.error("❌ SendGrid failed and SMTP fallback disabled for {} in schedule {}: {}", 
-                                                emailDto.getEmail(), scheduleId, sendgridException.getMessage());
+                                    logger.error("❌ SendGrid failed and SMTP fallback disabled for {} in schedule {}: {}",
+                                            emailDto.getEmail(), scheduleId, sendgridException.getMessage());
                                 }
                             }
-                        } else if (useSmtpFallback) {
+
+
+                    } else if (useSmtpFallback) {
                             // Use SMTP directly if SendGrid not configured
                             try {
                                 smtpEmailService.sendReminderEmail(emailDto.getEmail(), courseName, scheduledDateTime);
                                 emailSent = true;
                                 emailMethod = "SMTP";
-                                logger.info("✅ [{}] Email SENT via {} for schedule ID: {} -> {} ({} - {})", 
-                                           LocalDateTime.now(), 
-                                           emailMethod,
-                                           scheduleId, 
-                                           emailDto.getEmail(), 
-                                           emailDto.getUserType(), 
-                                           emailDto.getUserName());
+                                logger.info("✅ [{}] Email SENT via {} for schedule ID: {} -> {} ({} - {})",
+                                        LocalDateTime.now(),
+                                        emailMethod,
+                                        scheduleId,
+                                        emailDto.getEmail(),
+                                        emailDto.getUserType(),
+                                        emailDto.getUserName());
                             } catch (Exception smtpException) {
-                                logger.error("❌ SMTP failed for {} in schedule {}: {}", 
-                                            emailDto.getEmail(), scheduleId, smtpException.getMessage());
+                                logger.error("❌ SMTP failed for {} in schedule {}: {}",
+                                        emailDto.getEmail(), scheduleId, smtpException.getMessage());
                             }
                         } else {
                             logger.warn("⚠️ No email service configured! Set SENDGRID_API_KEY or enable SMTP fallback");
                         }
                     } else {
-                        logger.info("📧 [{}] Email QUEUED (not sent - notifications disabled) for schedule ID: {} -> {} ({} - {})", 
-                                   LocalDateTime.now(), 
-                                   scheduleId, 
-                                   emailDto.getEmail(), 
-                                   emailDto.getUserType(), 
-                                   emailDto.getUserName());
+                        logger.info("📧 [{}] Email QUEUED (not sent - notifications disabled) for schedule ID: {} -> {} ({} - {})",
+                                LocalDateTime.now(),
+                                scheduleId,
+                                emailDto.getEmail(),
+                                emailDto.getUserType(),
+                                emailDto.getUserName());
                     }
                 } catch (Exception parseException) {
-                    logger.error("Error parsing date/time for schedule {}: date={}, time={}", 
-                               scheduleId, scheduledDate, scheduledTime, parseException);
-                    
+                    logger.error("Error parsing date/time for schedule {}: date={}, time={}",
+                            scheduleId, scheduledDate, scheduledTime, parseException);
+
                     // Fallback: just log without parsing
-                    logger.info("[{}] Email fired for schedule ID: {} -> {} ({} - {})", 
-                               LocalDateTime.now(), 
-                               scheduleId, 
-                               emailDto.getEmail(), 
-                               emailDto.getUserType(), 
-                               emailDto.getUserName());
+                    logger.info("[{}] Email fired for schedule ID: {} -> {} ({} - {})",
+                            LocalDateTime.now(),
+                            scheduleId,
+                            emailDto.getEmail(),
+                            emailDto.getUserType(),
+                            emailDto.getUserName());
                 }
             }
-            
+
             logger.info("================================");
             if (emailNotificationsEnabled) {
                 logger.info("🔔 {} email notifications processed! 🔔", emails.size());
@@ -202,9 +215,10 @@ public class EmailNotificationService {
                 logger.info("💡 To enable email sending, set EMAIL_NOTIFICATIONS_ENABLED=true");
                 logger.info("💡 Configure SENDGRID_API_KEY or set USE_SMTP_FALLBACK=true with SMTP credentials");
             }
-            
+
         } catch (Exception e) {
             logger.error("Error sending notifications for schedule {}", scheduleId, e);
         }
     }
+
 }

@@ -11,6 +11,8 @@ import com.tutoring.Tutorverse.Services.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,12 +22,14 @@ import com.tutoring.Tutorverse.Services.JwtServices;
 
 
 
+
 @RestController
 @RequestMapping("/api/enrollment")
 public class EnrollmentController {
 
-    @Autowired
-	private JwtServices jwtServices;
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(EnrollmentController.class);
+
+    // Removed unused JwtServices field
 
     @Autowired
     private EnrollmentService enrollmentService;
@@ -94,6 +98,9 @@ public class EnrollmentController {
             return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
         }
     }
+
+
+    
     
 
     @GetMapping("/get-enrollment-details/{moduleId}")
@@ -103,8 +110,15 @@ public class EnrollmentController {
                     userService.getUserIdFromRequest(req),
                     moduleId
             );
+            Integer sessionsCompleted = enrollmentService.findSessionsCompletedByStudentIdAndModuleId(
+                    userService.getUserIdFromRequest(req),
+                    moduleId
+            );
+            
+            isPaid = isPaid || (sessionsCompleted <= 6);
             return ResponseEntity.ok(isPaid);
         } catch (Exception e) {
+            logger.error("Error fetching enrollment details: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(false);
         }
     }

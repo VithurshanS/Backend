@@ -113,6 +113,7 @@ CREATE TABLE enrollment (
     enrolment_id uuid not null,
     module_id uuid not null,
     student_id uuid not null,
+    sessions_completed integer default 0,
     primary key (enrolment_id),
     unique (student_id, module_id)
 );

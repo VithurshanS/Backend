@@ -20,12 +20,12 @@ public class UserCreateDto {
         this.isEmailVerified = isEmailVerified;
     }
 
-    public static UserCreateDto emailUser(String email,String name,String password,String role){
-        return new UserCreateDto(email,password,name,role,null,false);
+    public static UserCreateDto emailUser(String email, String name, String password, String role){
+        return new UserCreateDto(email, password, name, role, null, false);
     }
 
-    public static UserCreateDto googleUser(String email,String role,String providerId,String name){
-        return new UserCreateDto(email,null,name,role,providerId,true);
+    public static UserCreateDto googleUser(String email, String role, String providerId, String name){
+        return new UserCreateDto(email, null, name, role, providerId, true);
     }
 
 

@@ -16,7 +16,7 @@ public class UserGetDto {
     }
 
     public static UserGetDto sendUser(User user){
-        return new UserGetDto(user.getEmail(), user.getName(),user.getRole().getName(), user.isEmailVerified());
+        return new UserGetDto(user.getEmail(), user.getName(), user.getRole().getName(), user.isEmailVerified());
     }
 
     // Getter methods for JSON serialization

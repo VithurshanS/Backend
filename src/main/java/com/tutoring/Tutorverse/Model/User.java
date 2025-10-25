@@ -30,7 +30,7 @@ public class User {
 
     @Column(name = "name")
     private String name;
-    
+
     @Column(name = "is_email_verified", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean is_email_verified = false;
 
@@ -39,6 +39,13 @@ public class User {
 
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
+
+    // TOTP / 2FA fields
+    @Column(name = "totp_secret", nullable = true)
+    private String totpSecret;
+
+    @Column(name = "two_factor_enabled", columnDefinition = "BOOLEAN DEFAULT FALSE", nullable = true)
+    private boolean twoFactorEnabled = false;
 
     @PrePersist
     protected void onCreate() {
@@ -121,5 +128,21 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getTotpSecret() {
+        return totpSecret;
+    }
+
+    public void setTotpSecret(String totpSecret) {
+        this.totpSecret = totpSecret;
+    }
+
+    public boolean isTwoFactorEnabled() {
+        return twoFactorEnabled;
+    }
+
+    public void setTwoFactorEnabled(boolean twoFactorEnabled) {
+        this.twoFactorEnabled = twoFactorEnabled;
     }
 }

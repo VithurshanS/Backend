@@ -4,26 +4,18 @@ import com.sendgrid.*;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import com.sendgrid.*;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-
-import com.tutoring.Tutorverse.Services.EnrollmentService;
 
 @Service
 public class SendgridService {
 
     @Value("${sendgrid.api.key}")
     private String sendGridApiKey;
-
-
-    @Autowired
-    private EnrollmentService enrollmentService;
 
     public void sendContentUploadEmail(String toEmail, String subject, String contentText) throws IOException {
         Email from = new Email("tiran2018v@gmail.com"); // must be verified in SendGrid
@@ -40,8 +32,11 @@ public class SendgridService {
     }
 
 
-    public void sendReminderEmail(String toEmail, String moduleName, LocalDateTime startTime) {
-        Email from = new Email("tiran2018v@gmail.com");
+    public void sendReminderEmail(String toEmail, String moduleName, LocalDateTime startTime) throws IOException {
+        System.out.println("🔧 SendGrid API Key configured: " + (sendGridApiKey != null && !sendGridApiKey.isEmpty() ? "YES" : "NO"));
+        System.out.println("🔧 SendGrid API Key length: " + (sendGridApiKey != null ? sendGridApiKey.length() : "NULL"));
+        
+        Email from = new Email("tutorwars236@gmail.com");
         Email to = new Email(toEmail);
         String subject = "Reminder: Your class starts in 1 hour!";
 
@@ -55,13 +50,18 @@ public class SendgridService {
 
         SendGrid sg = new SendGrid(sendGridApiKey);
         Request request = new Request();
-        try {
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            sg.api(request);
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        
+        request.setMethod(Method.POST);
+        request.setEndpoint("mail/send");
+        request.setBody(mail.build());
+        
+        Response response = sg.api(request);
+        System.out.println("📧 SendGrid Response Code: " + response.getStatusCode());
+        System.out.println("📧 SendGrid Response Body: " + response.getBody());
+        System.out.println("📧 SendGrid Response Headers: " + response.getHeaders());
+        
+        if (response.getStatusCode() >= 400) {
+            throw new IOException("SendGrid API Error: " + response.getStatusCode() + " - " + response.getBody());
         }
     }
 

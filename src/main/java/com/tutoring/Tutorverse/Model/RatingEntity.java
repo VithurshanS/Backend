@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.util.UUID;
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Entity
 @Table(name = "rating")
@@ -28,4 +29,14 @@ public class RatingEntity {
 
     @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "student_name")
+    private String studentName;
+
+    @Column(name = "module_id", nullable = false)
+    private UUID moduleId;
+
 }

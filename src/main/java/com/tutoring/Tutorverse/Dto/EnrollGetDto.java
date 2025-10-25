@@ -11,4 +11,5 @@ public class EnrollGetDto {
     private UUID enrollmentId;
     private UUID studentId;
     private UUID moduleId;
+    private boolean isPaid;
 }

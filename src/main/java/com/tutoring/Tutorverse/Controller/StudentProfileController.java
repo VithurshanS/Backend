@@ -3,14 +3,17 @@ package com.tutoring.Tutorverse.Controller;
 import com.tutoring.Tutorverse.Dto.StudentProfileDto;
 import com.tutoring.Tutorverse.Model.StudentEntity;
 import com.tutoring.Tutorverse.Services.StudentProfileService;
-import com.tutoring.Tutorverse.Services.JwtServices;
+import com.tutoring.Tutorverse.Services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
+
 
 @RestController
 @RequestMapping("/api/student-profile")
@@ -22,17 +25,15 @@ public class StudentProfileController {
 	private StudentProfileService studentProfileService;
 
 	@Autowired
-	private JwtServices jwtServices;
+	private UserService userService;
 
 	@PostMapping
-	public ResponseEntity<?> createStudentProfile(@RequestBody StudentProfileDto dto,
-												  @RequestHeader(value = "Authorization", required = false) String authHeader) {
+	public ResponseEntity<?> createStudentProfile(@RequestBody StudentProfileDto dto, HttpServletRequest req) {
 		try {
-			if (authHeader == null || authHeader.isBlank()) {
-				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			UUID userId = userService.getUserIdFromRequest(req);
+			if (userId == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
 			}
-			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
-			UUID userId = jwtServices.getUserIdFromJwtToken(token);
 			dto.setStudentId(userId); // override any provided id
 			StudentEntity createdStudent = studentProfileService.createStudentProfile(dto);
 			return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
@@ -43,13 +44,12 @@ public class StudentProfileController {
 
 
 	@GetMapping("/me")
-	public ResponseEntity<?> getStudentProfile(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+	public ResponseEntity<?> getStudentProfile(HttpServletRequest req) {
 		try {
-			if (authHeader == null || authHeader.isBlank()) {
-				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			UUID userId = userService.getUserIdFromRequest(req);
+			if (userId == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
 			}
-			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
-			UUID userId = jwtServices.getUserIdFromJwtToken(token);
 			StudentEntity student = studentProfileService.getStudentProfile(userId);
 			return ResponseEntity.ok(student);
 		} catch (Exception e) {
@@ -58,14 +58,12 @@ public class StudentProfileController {
 	}
 
 	@PutMapping
-	public ResponseEntity<?> updateStudentProfile(@RequestBody StudentProfileDto dto,
-												  @RequestHeader(value = "Authorization", required = false) String authHeader) {
+	public ResponseEntity<?> updateStudentProfile(@RequestBody StudentProfileDto dto, HttpServletRequest req) {
 		try {
-			if (authHeader == null || authHeader.isBlank()) {
-				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			UUID userId = userService.getUserIdFromRequest(req);
+			if (userId == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
 			}
-			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
-			UUID userId = jwtServices.getUserIdFromJwtToken(token);
 			dto.setStudentId(userId);
 			StudentEntity updatedStudent = studentProfileService.updateStudentProfile(userId, dto);
 			return ResponseEntity.ok(updatedStudent);
@@ -75,13 +73,12 @@ public class StudentProfileController {
 	}
 
 	@DeleteMapping
-	public ResponseEntity<?> deleteStudentProfile(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+	public ResponseEntity<?> deleteStudentProfile(HttpServletRequest req) {
 		try {
-			if (authHeader == null || authHeader.isBlank()) {
-				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			UUID userId = userService.getUserIdFromRequest(req);
+			if (userId == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
 			}
-			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
-			UUID userId = jwtServices.getUserIdFromJwtToken(token);
 			studentProfileService.deleteStudentProfile(userId);
 			return ResponseEntity.noContent().build();
 		} catch (Exception e) {
@@ -90,22 +87,110 @@ public class StudentProfileController {
 	}
 
 	@PutMapping("/change-password")
-	 public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body,
-														  @RequestHeader(value = "Authorization", required = false) String authHeader) {
+	public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body, HttpServletRequest req) {
 		try {
-			if (authHeader == null || authHeader.isBlank()) {
-				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+			UUID userId = userService.getUserIdFromRequest(req);
+			if (userId == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
 			}
-			String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
-			UUID userId = jwtServices.getUserIdFromJwtToken(token);
 			String newPassword = body.get("newPassword");
 			if (newPassword == null || newPassword.isBlank()) {
 				return ResponseEntity.badRequest().body("newPassword is required");
 			}
-				studentProfileService.changePassword(userId, newPassword);
+			studentProfileService.changePassword(userId, newPassword);
 			return ResponseEntity.ok().build();
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token: " + e.getMessage());
 		}
 	}
+
+	@GetMapping("/count")
+	public ResponseEntity<?> getStudentCount() {
+		try {
+			Integer count = studentProfileService.getStudentCount();
+			Integer activeCount = studentProfileService.getActiveStudentCount();
+			Integer bannedCount = studentProfileService.getBannedStudentCount();
+			// Map.of() does not allow null values; default nulls to 0 to prevent NPE / Whitelabel error
+			int safeTotal = count == null ? 0 : count;
+			int safeActive = activeCount == null ? 0 : activeCount;
+			int safeBanned = bannedCount == null ? 0 : bannedCount;
+			Map<String, Integer> payload = new HashMap<>();
+			payload.put("total", safeTotal);
+			payload.put("active", safeActive);
+			payload.put("banned", safeBanned);
+			return ResponseEntity.ok().body(payload);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving student count: " + e.getMessage());
+		}
+	}
+
+	@GetMapping("/all")
+	public ResponseEntity<?> getAllStudents() {
+		try {
+			return ResponseEntity.ok(studentProfileService.getAllStudents());
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving students: " + e.getMessage());
+		}
+	}
+
+	@PostMapping("/ban")
+	public ResponseEntity<?> banStudent(@RequestParam UUID studentId) {
+		try {
+			studentProfileService.banStudent(studentId);
+			return ResponseEntity.ok().build();
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error banning student: " + e.getMessage());
+		}
+	}
+	
+	@PostMapping("/unban")
+	public ResponseEntity<?> unbanStudent(@RequestParam UUID studentId) {
+		try {
+			studentProfileService.unbanStudent(studentId);
+			return ResponseEntity.ok().build();
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error unbanning student: " + e.getMessage());
+		}
+	}
+
+
+	@GetMapping("/countall")
+	public ResponseEntity<?> getTotalStudentCount() {
+		try {
+			Integer totalCount = studentProfileService.getStudentCount();
+			Map<String, Integer> payload = new HashMap<>();
+			payload.put("totalCount", totalCount);
+			return ResponseEntity.ok().body(payload);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving total student count: " + e.getMessage());
+		}
+	}
+
+	@GetMapping("/growthstudent/last-month")
+	public ResponseEntity<?> getLastMonthGrowth() {
+		try {
+			Map<String, Object> growthData = studentProfileService.lastMonthGrowth();
+			return ResponseEntity.ok().body(growthData);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving growth data: " + e.getMessage());
+		}
+	}
+	
+	@GetMapping("/image")
+	public ResponseEntity<?> getStudentImageUrl(HttpServletRequest req) {
+		try {
+			UUID userId = userService.getUserIdFromRequest(req);
+			if (userId == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing authentication token");
+			}
+			String imageUrl = studentProfileService.getStudentImageUrl(userId);
+			Map<String, String> payload = new HashMap<>();
+			payload.put("imageUrl", imageUrl);
+			return ResponseEntity.ok().body(payload);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving student image URL: " + e.getMessage());
+		}
+	}
+
+
 }

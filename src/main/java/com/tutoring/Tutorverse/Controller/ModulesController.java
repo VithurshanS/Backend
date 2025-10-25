@@ -7,13 +7,12 @@ import com.tutoring.Tutorverse.Services.ModulesService;
 import com.tutoring.Tutorverse.Services.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
-
-import com.tutoring.Tutorverse.Services.JwtServices;
 import com.tutoring.Tutorverse.Repository.userRepository;
 import com.tutoring.Tutorverse.Repository.ModulesRepository;
 import com.tutoring.Tutorverse.Model.User;
 import com.tutoring.Tutorverse.Model.ModuelsEntity;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,7 +23,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
@@ -42,9 +40,6 @@ public class ModulesController {
     private UserService userService;
 
     @Autowired
-    private JwtServices jwtServices;
-
-    @Autowired
     private userRepository userRepo;
 
     @Autowired
@@ -60,9 +55,6 @@ public class ModulesController {
     @GetMapping("/get-modulesfortutor")
     public ResponseEntity<List<ModuelsDto>> getTutorModules(HttpServletRequest req){
         UUID userId = userService.getUserIdFromRequest(req);
-        if(userId == null || !userService.isTutor(userId)){
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Requires TUTOR role");
-        }
         List<ModuelsDto> modules = modulesService.getModulesByTutorId(userId);
         return ResponseEntity.ok(modules);
 
@@ -78,8 +70,8 @@ public class ModulesController {
 
 
     @PostMapping("/create")
-    public ResponseEntity<?> createModule(@RequestBody ModuelsDto moduelsDto, @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        User tutor = requireTutor(authHeader);
+    public ResponseEntity<?> createModule(@RequestBody ModuelsDto moduelsDto, HttpServletRequest req) {
+        User tutor = requireTutor(req);
         // Force tutorId from token, ignore any client-sent tutorId
         moduelsDto.setTutorId(tutor.getId());
         modulesService.createModule(moduelsDto);
@@ -88,8 +80,8 @@ public class ModulesController {
 
 
     @DeleteMapping("/delete/{moduleId}")
-    public ResponseEntity<Void> deleteModule(@PathVariable UUID moduleId, @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        User tutor = requireTutor(authHeader);
+    public ResponseEntity<Void> deleteModule(@PathVariable UUID moduleId, HttpServletRequest req) {
+        User tutor = requireTutor(req);
         Optional<ModuelsEntity> moduleOpt = modulesRepository.findById(moduleId);
         if (moduleOpt.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Module not found");
@@ -109,15 +101,11 @@ public class ModulesController {
         return ResponseEntity.ok(results);
     }
 
-    private User requireTutor(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing token");
+    private User requireTutor(HttpServletRequest req) {
+        UUID userId = userService.getUserIdFromRequest(req);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or invalid token");
         }
-        String token = authHeader.substring(7);
-        if (!jwtServices.validateJwtToken(token)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
-        }
-        UUID userId = jwtServices.getUserIdFromJwtToken(token);
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         if (user.getRole() == null || user.getRole().getName() == null || !user.getRole().getName().equalsIgnoreCase("TUTOR")) {
@@ -127,10 +115,63 @@ public class ModulesController {
     }
 
     @GetMapping("/tutor")
-    public ResponseEntity<List<ModuelsDto>> getModulesByTutorId(@RequestHeader(value = "Authorization", required = false) String authHeader) {
-        User tutor = requireTutor(authHeader);
+    public ResponseEntity<List<ModuelsDto>> getModulesByTutorId(HttpServletRequest req) {
+        User tutor = requireTutor(req);
         List<ModuelsDto> modules = modulesService.getModulesByTutorId(tutor.getId());
         System.out.println(modules);
         return ResponseEntity.ok(modules);
     }
-}
+
+    @GetMapping("/count")
+    public ResponseEntity<?> getModuleCount() {
+        try {
+            Integer count = modulesService.getModuleCount();
+            return ResponseEntity.ok(count);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving module count: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/getmodtutor")
+    public ResponseEntity<List<ModuelsDto>> getMT(@RequestParam UUID tutorId) {
+        List<ModuelsDto> modules = modulesService.getModulesByTutorId(tutorId);
+        return ResponseEntity.ok(modules);
+    }
+
+
+    
+	@GetMapping("/growthmodule/last-month")
+	public ResponseEntity<?> getLastMonthGrowth() {
+		try {
+			Map<String, Object> growthData = modulesService.lastMonthGrowth();
+			return ResponseEntity.ok().body(growthData);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving growth data: " + e.getMessage());
+		}
+	}
+
+    @GetMapping("/recommendedmodules")
+    public ResponseEntity<List<ModuelsDto>> getRecommendedModulesToMatchingDomain(@RequestParam String domain,HttpServletRequest req) {
+        UUID userId = userService.getUserIdFromRequest(req);
+        List<ModuelsDto> modules = modulesService.getRecommendedModules(domain,userId);
+        return ResponseEntity.ok(modules);
+    }
+
+    @GetMapping("/randomrecommendedmodules")
+    public ResponseEntity<List<ModuelsDto>> getRandomRecommendedModules(HttpServletRequest req) {
+        try {
+            UUID userId = userService.getUserIdFromRequest(req);
+            List<ModuelsDto> modules = modulesService.getRandomRecommendedModules(userId);
+            return ResponseEntity.ok(modules);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
+        }
+
+
+    }
+
+
+
+
+}  

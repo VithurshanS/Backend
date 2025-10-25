@@ -40,4 +40,23 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, UUID> 
     UUID findMatchingSchedule(@Param("reqDate") LocalDate reqDate,
                              @Param("reqTime") LocalTime reqTime,
                              @Param("moduleId") UUID moduleId);
+
+    // Native query for get_upcoming_schedules function (with active as boolean, correct order)
+    @Query(value = "SELECT * FROM get_upcoming_schedules(:fromDate, :fromTime, :modId, :tutorId, :limitCount)", nativeQuery = true)
+    List<Object[]> getUpcomingSchedules(
+        @Param("fromDate") LocalDate fromDate,
+        @Param("fromTime") LocalTime fromTime,
+        @Param("modId") UUID modId,
+        @Param("tutorId") UUID tutorId,
+        @Param("limitCount") Integer limitCount
+    );
+
+    @Query(value = "SELECT * FROM get_upcoming_schedules_student(:fromDate, :fromTime, :modId, :stuId, :limitCount)", nativeQuery = true)
+    List<Object[]> getUpcomingSchedulesForStudent(
+        @Param("fromDate") LocalDate fromDate,
+        @Param("fromTime") LocalTime fromTime,
+        @Param("modId") UUID modId,
+        @Param("stuId") UUID stuId,
+        @Param("limitCount") Integer limitCount
+    );
 }

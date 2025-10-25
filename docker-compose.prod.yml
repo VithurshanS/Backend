@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  tutorverse-backend:
+    image: vithurshansiva/tutorverse:v1.0.8
+    container_name: tutorverse-backend-prod
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.production
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    
+    # Production health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    # Always restart in production
+    restart: always
+    
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    
+    # Production volumes
+    volumes:
+      - ./logs:/app/logs
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    
+    networks:
+      - tutorverse-prod-network
+
+networks:
+  tutorverse-prod-network:
+    driver: bridge

@@ -1,6 +1,7 @@
 package com.tutoring.Tutorverse.Dto;
 
-import com.tutoring.Tutorverse.Model.ModuelsEntity;
+import java.util.UUID;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

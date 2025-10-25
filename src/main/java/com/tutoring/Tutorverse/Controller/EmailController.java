@@ -38,19 +38,20 @@ public class EmailController {
     /**
      * Test SendGrid configuration by sending a simple test email
      */
-    @PostMapping("/test-sendgrid")
-    public ResponseEntity<String> testSendGrid(@RequestParam String toEmail) {
-        try {
-            sendgridService.sendReminderEmail(
-                toEmail, 
-                "Test Course", 
-                LocalDateTime.now().plusHours(1)
-            );
-            return ResponseEntity.ok("✅ Test email sent successfully to " + toEmail);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("❌ Failed to send email: " + e.getMessage());
-        }
-    }
+//    @PostMapping("/test-sendgrid")
+//    public ResponseEntity<String> testSendGrid(@RequestParam String toEmail) {
+//        try {
+//            sendgridService.sendReminderEmail(
+//                toEmail,
+//                "Test Course",
+//
+//                LocalDateTime.now().plusHours(1)
+//            );
+//            return ResponseEntity.ok("✅ Test email sent successfully to " + toEmail);
+//        } catch (Exception e) {
+//            return ResponseEntity.status(500).body("❌ Failed to send email: " + e.getMessage());
+//        }
+//    }
     
 
     @PostMapping("/test-notification")
